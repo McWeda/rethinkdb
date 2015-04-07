@@ -53,7 +53,7 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(protob_t<const Backtrace> bt, datum_t _d)
+    faux_term_t(backtrace_id_t bt, datum_t _d)
         : runtime_term_t(std::move(bt)), d(std::move(_d)) { }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:

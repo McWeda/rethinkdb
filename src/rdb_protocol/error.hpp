@@ -38,7 +38,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 // directly.
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
-                  std::string msg, const Backtrace *bt_src) NORETURN;
+                  std::string msg, backtrace_id_t bt_src) NORETURN;
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
@@ -56,7 +56,7 @@ public:
                               std::string msg) const = 0;
 };
 
-protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
+backtrace_id_t get_backtrace(const protob_t<const Term> &t);
 
 // This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
@@ -74,20 +74,19 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-    const protob_t<const Backtrace> &backtrace() const { return bt_src; }
+    backtrace_id_t backtrace() const { return bt_src; }
 
 protected:
-    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
+    explicit pb_rcheckable_t(backtrace_id_t _bt_src)
         : bt_src(_bt_src) { }
 
-    protob_t<const Backtrace> update_bt(const protob_t<const Backtrace> &new_bt) {
-        protob_t<const Backtrace> ret(new_bt);
-        ret.swap(bt_src);
-        return std::move(ret);
+    backtrace_id_t update_bt(backtrace_id_t new_bt) {
+        std::swap(new_bt, bt_src);
+        return new_bt;
     }
 
 private:
-    protob_t<const Backtrace> bt_src;
+    backtrace_id_t bt_src;
 };
 
 // Use these macros to return errors to users.
@@ -180,111 +179,65 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
     } while (0)
 #endif // NDEBUG
 
-// A backtrace we return to the user.  Pretty self-explanatory.
-class backtrace_t {
-public:
-    explicit backtrace_t(const Backtrace *bt) {
-        if (!bt) return;
-        for (int i = 0; i < bt->frames_size(); ++i) {
-            frame_t f(bt->frames(i));
-            r_sanity_check(f.is_valid());
-            frames.push_back(f);
-        }
-    }
-    backtrace_t() { }
+typedef uint32_t backtrace_id_t;
 
+// Converts backtrace ids into a backtrace we can return to the user.
+class backtrace_registry_t {
+public:
     class frame_t {
     public:
-        frame_t() : type(OPT), opt("UNITIALIZED") { }
-        explicit frame_t(int32_t _pos) : type(POS), pos(_pos) { }
-        explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
-        explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
-        explicit frame_t(const Frame &f);
-        Frame toproto() const;
+        frame_t(const frame_t *_parent, int32_t _pos) :
+            parent(_parent), type(type_t::POS), pos(_pos) { }
+        frame_t(const frame_t *_parent, const std::string &_opt) :
+            parent(_parent), type(type_t::OPT), opt(_opt) { }
+        frame_t(const frame_t *_parent, const char *_opt) :
+            parent(_parent), type(type_t::OPT), opt(_opt) { }
 
-        static frame_t invalid() { return frame_t(INVALID); }
-        bool is_invalid() const { return type == POS && pos == INVALID; }
-        static frame_t head() { return frame_t(HEAD); }
-        bool is_head() const { return type == POS && pos == HEAD; }
-        static frame_t skip() { return frame_t(SKIP); }
-        bool is_skip() const { return type == POS && pos == SKIP; }
-        bool is_valid() { // -1 is the classic "invalid" frame
-            return is_head() || is_skip()
-                || (type == POS && pos >= 0)
-                || (type == OPT && opt != "UNINITIALIZED");
-        }
+        bool is_head() const { return parent == nullptr; }
         bool is_stream_funcall_frame() {
             return type == POS && pos != 0;
         }
 
-        RDB_DECLARE_ME_SERIALIZABLE(frame_t);
-
     private:
-        enum special_frames {
-            INVALID = -1,
-            HEAD = -2,
-            SKIP = -3
-        };
-        enum type_t { POS = 0, OPT = 1 };
-        int32_t type; // serialize macros didn't like `type_t` for some reason
+        const frame_t *parent;
+        enum class type_t { POS = 0, OPT = 1 } type;
         int32_t pos;
         std::string opt;
+
+        DISABLE_COPYING(frame_t);
     };
 
-    void fill_bt(Backtrace *bt) const;
-    // Write out the backtrace to return it to the user.
-    void fill_error(Response *res, Response_ResponseType type, std::string msg) const;
+    backtrace_id_t new_backtrace(const frame_t *frame);
+    ql::datum_t get_backtrace(backtrace_id_t bt, size_t dummy_frames);
 
-    bool is_empty() { return frames.size() == 0; }
-
-    void delete_frames(int num_frames) {
-        for (int i = 0; i < num_frames; ++i) {
-            if (frames.size() == 0) {
-                rassert(false);
-            } else {
-                frames.pop_back();
-            }
-        }
-    }
-
-    RDB_DECLARE_ME_SERIALIZABLE(backtrace_t);
 private:
-    std::list<frame_t> frames;
-};
+    // TODO: use a hashmap or something?
+    std::vector<const frame_t *> frames;
 
-const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
+    DISABLE_COPYING(backtrace_registry_t);
+};
 
 // A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const Backtrace *bt_src)
-        : base_exc_t(type), exc_msg_(exc_msg) {
-        if (bt_src != NULL) {
-            backtrace_ = backtrace_t(bt_src);
-        }
-    }
-    exc_t(const base_exc_t &e, const Backtrace *bt_src, int dummy_frames = 0)
-        : base_exc_t(e.get_type()), exc_msg_(e.what()) {
-        if (bt_src != NULL) {
-            backtrace_ = backtrace_t(bt_src);
-        }
-        backtrace_.delete_frames(dummy_frames);
-    }
-    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const backtrace_t &backtrace)
-        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) { }
+    exc_t(base_exc_t::type_t type, const std::string &_msg, backtrace_id_t _bt)
+        : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames(0) { }
+    exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
+        : base_exc_t(e.get_type()), msg(e.what()), bt(_bt), dummy_frames(_dummy_frames) {
     virtual ~exc_t() throw () { }
 
-    const char *what() const throw () { return exc_msg_.c_str(); }
-    const backtrace_t &backtrace() const { return backtrace_; }
+    const char *what() const throw () { return msg.c_str(); }
+    ql::datum_t to_backtrace(const backtrace_registry_t &bt_reg) {
+        return bt_reg.get_backtrace(bt, dummy_frames);
+    }
 
     RDB_DECLARE_ME_SERIALIZABLE(exc_t);
 private:
-    backtrace_t backtrace_;
-    std::string exc_msg_;
+    std::string msg;
+    backtrace_id_t bt;
+    size_t dummy_frames;
 };
 
 // A datum exception is like a normal RQL exception, except it doesn't
@@ -294,18 +247,18 @@ private:
 class datum_exc_t : public base_exc_t {
 public:
     datum_exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg("UNINITIALIZED") { }
-    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_exc_msg)
-        : base_exc_t(type), exc_msg(_exc_msg) { }
+    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_msg)
+        : base_exc_t(type), msg(_msg) { }
     virtual ~datum_exc_t() throw () { }
-    const char *what() const throw () { return exc_msg.c_str(); }
+
+    const char *what() const throw () { return msg.c_str(); }
 
     RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:
-    std::string exc_msg;
+    std::string msg;
 };
 
-void fill_error(Response *res, Response_ResponseType type, std::string msg,
-                const backtrace_t &bt = backtrace_t());
+void fill_error(Response *res, Response_ResponseType type, std::string msg, datum_t bt);
 
 } // namespace ql
 

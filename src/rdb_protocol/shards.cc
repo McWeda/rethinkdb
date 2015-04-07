@@ -233,7 +233,7 @@ private:
         guarantee(false); // Don't use this as an eager accumulator.
     }
     virtual scoped_ptr_t<val_t> finish_eager(
-        protob_t<const Backtrace>, bool, const ql::configured_limits_t &) {
+        backtrace_id_t, bool, const ql::configured_limits_t &) {
         guarantee(false); // Don't use this as an eager accumulator.
         unreachable();
     }
@@ -371,9 +371,9 @@ private:
         }
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             const configured_limits_t &limits) {
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
@@ -421,9 +421,9 @@ private:
         groups->clear();
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          UNUSED const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
@@ -556,7 +556,7 @@ private:
                            const acc_func_t &f) = 0;
 
     acc_func_t f;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class sum_terminal_t : public skip_terminal_t<double> {
@@ -879,7 +879,7 @@ private:
 
     std::vector<counted_t<const func_t> > funcs;
     bool append_index, multi;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class map_trans_t : public ungrouped_op_t {

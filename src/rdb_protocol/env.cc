@@ -76,8 +76,7 @@ std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q) {
     // Supply a default db of "test" if there is no "db" optarg.
     if (!optargs.count("db")) {
         Term arg = r::db("test").get();
-        Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-        propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
+        propagate_backtrace(&arg, t->backtrace()); // duplicate toplevel backtrace
         optargs["db"] = construct_optarg_wire_func(arg);
     }
 

@@ -15,7 +15,7 @@ namespace ql {
 class get_selection_t : public single_selection_t {
 public:
     get_selection_t(env_t *_env,
-                    protob_t<const Backtrace> _bt,
+                    backtrace_id_t _bt,
                     counted_t<table_t> _tbl,
                     datum_t _key,
                     datum_t _row = datum_t())
@@ -53,7 +53,7 @@ public:
     virtual const counted_t<table_t> &get_tbl() { return tbl; }
 private:
     env_t *env;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
     counted_t<table_t> tbl;
     datum_t key, row;
 };
@@ -61,7 +61,7 @@ private:
 class extreme_selection_t : public single_selection_t {
 public:
     extreme_selection_t(env_t *_env,
-                        protob_t<const Backtrace> _bt,
+                        backtrace_id_t _bt,
                         counted_t<table_slice_t> _slice,
                         std::string _err)
         : env(_env),
@@ -106,20 +106,20 @@ public:
     virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
 private:
     env_t *env;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
     counted_t<table_slice_t> slice;
     datum_t row;
     std::string err;
 };
 
 counted_t<single_selection_t> single_selection_t::from_key(
-    env_t *env, protob_t<const Backtrace> bt,
+    env_t *env, backtrace_id_t bt,
     counted_t<table_t> table, datum_t key) {
     return make_counted<get_selection_t>(
         env, std::move(bt), std::move(table), std::move(key));
 }
 counted_t<single_selection_t> single_selection_t::from_row(
-    env_t *env, protob_t<const Backtrace> bt,
+    env_t *env, backtrace_id_t bt,
     counted_t<table_t> table, datum_t row) {
     datum_t d = row.get_field(datum_string_t(table->get_pkey()), NOTHROW);
     r_sanity_check(d.has());
@@ -127,7 +127,7 @@ counted_t<single_selection_t> single_selection_t::from_row(
         env, std::move(bt), std::move(table), std::move(d), std::move(row));
 }
 counted_t<single_selection_t> single_selection_t::from_slice(
-    env_t *env, protob_t<const Backtrace> bt,
+    env_t *env, backtrace_id_t bt,
     counted_t<table_slice_t> table, std::string err) {
     return make_counted<extreme_selection_t>(
         env, std::move(bt), std::move(table), std::move(err));
@@ -143,7 +143,7 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl,
 
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
-    env_t *env, const protob_t<const Backtrace> &bt) {
+    env_t *env, backtrace_id_t bt) {
     if (bounds.is_empty(env->reql_version())) {
         return make_counted<array_datum_stream_t>(datum_t::empty_array(), bt);
     } else {
@@ -187,7 +187,7 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
 counted_t<datum_stream_t> table_t::as_seq(
     env_t *env,
     const std::string &idx,
-    const protob_t<const Backtrace> &bt,
+    backtrace_id_t bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
     return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
@@ -195,7 +195,7 @@ counted_t<datum_stream_t> table_t::as_seq(
 
 table_t::table_t(counted_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
-                 bool _use_outdated, const protob_t<const Backtrace> &backtrace)
+                 bool _use_outdated, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
@@ -379,7 +379,7 @@ counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
         datum_t value,
         const std::string &get_all_sindex_id,
-        const protob_t<const Backtrace> &bt) {
+        backtrace_id_t bt) {
     return tbl->read_all(
         env,
         get_all_sindex_id,
@@ -475,7 +475,7 @@ const char *val_t::type_t::name() const {
     }
 }
 
-val_t::val_t(datum_t _datum, protob_t<const Backtrace> backtrace)
+val_t::val_t(datum_t _datum, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::DATUM),
       u(_datum) {
@@ -483,14 +483,14 @@ val_t::val_t(datum_t _datum, protob_t<const Backtrace> backtrace)
 }
 
 val_t::val_t(const counted_t<grouped_data_t> &groups,
-             protob_t<const Backtrace> bt)
+             backtrace_id_t bt)
     : pb_rcheckable_t(bt),
       type(type_t::GROUPED_DATA),
       u(groups) {
     guarantee(groups.has());
 }
 
-val_t::val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace> bt)
+val_t::val_t(counted_t<single_selection_t> _selection, backtrace_id_t bt)
     : pb_rcheckable_t(bt),
       type(type_t::SINGLE_SELECTION),
       u(_selection) {
@@ -498,7 +498,7 @@ val_t::val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace>
 }
 
 val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
-             protob_t<const Backtrace> backtrace)
+             backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SEQUENCE),
       u(_sequence) {
@@ -511,32 +511,32 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt)
+val_t::val_t(counted_t<selection_t> _selection, backtrace_id_t bt)
     : pb_rcheckable_t(bt),
       type(type_t::SELECTION),
       u(_selection) {
     guarantee(selection().has());
 }
 
-val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<table_t> _table, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
       u(_table) {
     guarantee(table().has());
 }
-val_t::val_t(counted_t<table_slice_t> _slice, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<table_slice_t> _slice, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::TABLE_SLICE),
       u(_slice) {
     guarantee(table_slice().has());
 }
-val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<const db_t> _db, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::DB),
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<const func_t> _func, backtrace_id_t backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {

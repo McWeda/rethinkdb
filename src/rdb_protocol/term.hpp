@@ -45,7 +45,7 @@ public:
     }
 
 protected:
-    explicit runtime_term_t(protob_t<const Backtrace> bt);
+    explicit runtime_term_t(backtrace_id_t bt);
 
 private:
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;

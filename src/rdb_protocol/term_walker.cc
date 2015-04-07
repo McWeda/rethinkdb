@@ -22,7 +22,7 @@ public:
     // This constructor propagates a backtrace down a tree until it hits a node
     // that already has a backtrace (this is used for e.g. rewrite terms so that
     // they return reasonable backtraces in the macroexpanded nodes).
-    term_walker_t(Term *root, const Backtrace *_bt)
+    term_walker_t(Term *root, backtrace_id_t _bt)
         : depth(0), writes_legal(true), bt(_bt) {
         propwalk(root, 0, head_frame);
     }
@@ -499,7 +499,7 @@ private:
 
     int depth;
     bool writes_legal;
-    const Backtrace *const bt;
+    backtrace_id_t bt;
     datum_t curtime;
 };
 
@@ -507,7 +507,7 @@ void preprocess_term(Term *root) {
     term_walker_t walker(root);
 }
 
-void propagate_backtrace(Term *root, const Backtrace *bt) {
+void propagate_backtrace(Term *root, backtrace_id_t bt) {
     term_walker_t walker(root, bt);
 }
 

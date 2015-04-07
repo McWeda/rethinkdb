@@ -777,8 +777,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
         cfeed_bundle_t(ql::env_t *env, artificial_t *a)
-            : bt(ql::make_counted_backtrace()),
-              point_0(a->subscribe(
+            : point_0(a->subscribe(
                           env,
                           false,
                           keyspec_t::point_t{ql::datum_t(0.0)},
@@ -807,7 +806,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }
-        ql::protob_t<const Backtrace> bt;
+        backtrace_id_t bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
     cond_t interruptor;

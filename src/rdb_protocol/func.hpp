@@ -60,7 +60,7 @@ public:
                              eval_flags_t eval_flags = NO_FLAGS) const;
 
 protected:
-    explicit func_t(const protob_t<const Backtrace> &bt_source);
+    explicit func_t(backtrace_id_t bt_source);
 
 private:
     virtual bool filter_helper(env_t *env, datum_t arg) const = 0;
@@ -70,7 +70,7 @@ private:
 
 class reql_func_t : public func_t {
 public:
-    reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
+    reql_func_t(backtrace_id_t backtrace,  // for pb_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<const term_t> body);
@@ -109,7 +109,7 @@ class js_func_t : public func_t {
 public:
     js_func_t(const std::string &_js_source,
               uint64_t timeout_ms,
-              protob_t<const Backtrace> backtrace);
+              backtrace_id_t backtrace);
     ~js_func_t();
 
     // Some queries, like filter, can take a shortcut object instead of a
@@ -150,19 +150,19 @@ protected:
 // function as their argument.
 
 counted_t<const func_t> new_constant_func(datum_t obj,
-                                          const protob_t<const Backtrace> &root);
+                                          backtrace_id_t root);
 
 counted_t<const func_t> new_pluck_func(datum_t obj,
-                                       const protob_t<const Backtrace> &bt_src);
+                                       backtrace_id_t bt_src);
 
 counted_t<const func_t> new_get_field_func(datum_t obj,
-                                           const protob_t<const Backtrace> &bt_src);
+                                           backtrace_id_t bt_src);
 
 counted_t<const func_t> new_eq_comparison_func(datum_t obj,
-                                               const protob_t<const Backtrace> &bt_src);
+                                               backtrace_id_t bt_src);
 
 counted_t<const func_t> new_page_func(datum_t method,
-                                      const protob_t<const Backtrace> &bt_src);
+                                      backtrace_id_t bt_src);
 
 class js_result_visitor_t : public boost::static_visitor<val_t *> {
 public:

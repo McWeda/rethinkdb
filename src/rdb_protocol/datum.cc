@@ -1417,7 +1417,7 @@ scoped_cJSON_t datum_t::as_json() const {
 
 // TODO: make BINARY, STR, and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
-datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
+datum_t::as_datum_stream(backtrace_id_t backtrace) const {
     switch (get_type()) {
     case MINVAL:   // fallthru
     case MAXVAL:   // fallthru

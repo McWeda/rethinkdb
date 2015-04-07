@@ -274,8 +274,8 @@ void run(query_id_t &&query_id,
     }
 }
 
-runtime_term_t::runtime_term_t(protob_t<const Backtrace> bt)
-    : pb_rcheckable_t(std::move(bt)) { }
+runtime_term_t::runtime_term_t(backtrace_id_t bt)
+    : pb_rcheckable_t(bt) { }
 
 runtime_term_t::~runtime_term_t() { }
 
