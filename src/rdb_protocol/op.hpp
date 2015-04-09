@@ -110,7 +110,7 @@ void accumulate_all_captures(
 // access their arguments.
 class op_term_t : public term_t {
 protected:
-    op_term_t(compile_env_t *env, protob_t<const Term> term,
+    op_term_t(compile_env_t *env, protob_t<const Term> term, backtrace_id_t bt,
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 

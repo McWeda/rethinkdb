@@ -199,7 +199,7 @@ public:
         }
 
     private:
-        const frame_t *parent;
+        backtrace_id_t parent;
         enum class type_t { POS = 0, OPT = 1 } type;
         int32_t pos;
         std::string opt;
@@ -207,12 +207,15 @@ public:
         DISABLE_COPYING(frame_t);
     };
 
-    backtrace_id_t new_backtrace(const frame_t *frame);
+    backtrace_id_t new_frame(backtrace_id_t parent_bt, int32_t arg);
+    backtrace_id_t new_frame(backtrace_id_t parent_bt, const std::string &optarg);
+    backtrace_id_t new_frame(backtrace_id_t parent_bt, const char *optarg);
+
     ql::datum_t get_backtrace(backtrace_id_t bt, size_t dummy_frames);
 
 private:
     // TODO: use a hashmap or something?
-    std::vector<const frame_t *> frames;
+    std::vector<frame_t> frames;
 
     DISABLE_COPYING(backtrace_registry_t);
 };

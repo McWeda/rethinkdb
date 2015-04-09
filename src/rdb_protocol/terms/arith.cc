@@ -12,8 +12,8 @@ namespace ql {
 
 class arith_term_t : public op_term_t {
 public:
-    arith_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
+    arith_term_t(compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch (arithtype) {
         case Term_TermType_ADD: namestr = "ADD"; op = &arith_term_t::add; break;

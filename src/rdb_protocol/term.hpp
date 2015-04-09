@@ -29,6 +29,7 @@ enum eval_flags_t {
 class runtime_term_t : public slow_atomic_countable_t<runtime_term_t>,
                        public pb_rcheckable_t {
 public:
+    runtime_term_t(backtrace_id_t bt);
     virtual ~runtime_term_t();
 
     scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;

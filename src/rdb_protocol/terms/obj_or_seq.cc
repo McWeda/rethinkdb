@@ -89,7 +89,7 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 
         compile_env_t compile_env(env->scope.compute_visibility());
         counted_t<func_term_t> func_term
-            = make_counted<func_term_t>(&compile_env, func);
+            = make_counted<func_term_t>(&compile_env, func, target->backtrace());
         counted_t<const func_t> f = func_term->eval_to_func(env->scope);
 
         counted_t<datum_stream_t> stream = v0->as_seq(env->env);
