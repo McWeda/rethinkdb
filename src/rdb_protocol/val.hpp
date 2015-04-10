@@ -29,7 +29,7 @@ class val_t;
 
 /* A `table_t` is an `r.table` term, possibly with some other things chained onto
 onto it. */
-class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
+class table_t : public single_threaded_countable_t<table_t>, public bt_rcheckable_t {
 public:
     table_t(counted_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
@@ -46,7 +46,7 @@ public:
             env_t *env,
             const datum_t &query_geometry,
             const std::string &new_sindex_id,
-            const pb_rcheckable_t *parent);
+            const bt_rcheckable_t *parent);
     datum_t get_nearest(
             env_t *env,
             lon_lat_point_t center,
@@ -121,7 +121,7 @@ private:
 };
 
 class table_slice_t
-    : public single_threaded_countable_t<table_slice_t>, public pb_rcheckable_t {
+    : public single_threaded_countable_t<table_slice_t>, public bt_rcheckable_t {
 public:
     table_slice_t(counted_t<table_t> _tbl,
                   boost::optional<std::string> _idx = boost::none,
@@ -183,7 +183,7 @@ public:
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public pb_rcheckable_t {
+class val_t : public bt_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible

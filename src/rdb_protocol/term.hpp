@@ -27,7 +27,7 @@ enum eval_flags_t {
 };
 
 class runtime_term_t : public slow_atomic_countable_t<runtime_term_t>,
-                       public pb_rcheckable_t {
+                       public bt_rcheckable_t {
 public:
     runtime_term_t(backtrace_id_t bt);
     virtual ~runtime_term_t();
@@ -61,7 +61,6 @@ public:
     virtual bool is_deterministic() const = 0;
 
     protob_t<const Term> get_src() const;
-    void prop_bt(Term *t) const;
 
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
@@ -71,7 +70,8 @@ private:
     DISABLE_COPYING(term_t);
 };
 
-counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t);
+counted_t<const term_t> compile_term(
+    compile_env_t *env, protob_t<const Term> t, backtrace_id_t bt);
 
 } // namespace ql
 

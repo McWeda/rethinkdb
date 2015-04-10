@@ -157,13 +157,17 @@ private:
     DISABLE_COPYING(env_t);
 };
 
+class backtrace_registry_t;
+
 // An environment in which expressions are compiled.  Since compilation doesn't
 // evaluate anything, it doesn't need an env_t *.
 class compile_env_t {
 public:
-    explicit compile_env_t(var_visibility_t &&_visibility)
-        : visibility(std::move(_visibility)) { }
+    explicit compile_env_t(var_visibility_t &&_visibility,
+                           backtrace_registry_t *_bt_reg)
+        : visibility(std::move(_visibility)), bt_reg(_bt_reg) { }
     var_visibility_t visibility;
+    backtrace_registry_t *bt_reg;
 };
 
 // This is an environment for evaluating things that use variables in scope.  It

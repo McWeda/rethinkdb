@@ -16,7 +16,7 @@ class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
                    r::reql_t (*rewrite)(protob_t<const Term> in,
-                                        const pb_rcheckable_t *bt_src,
+                                        backtrace_id_t bt,
                                         protob_t<const Term> optargs_in))
         : term_t(term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
@@ -25,8 +25,10 @@ public:
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
         out->Swap(&rewrite(in, this, in).get());
-        propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
-        real = compile_term(env, out);
+
+        // The replacer will ensure all sub-terms use this backtrace
+        backtrace_registry_t::replacer_t replacer(env->bt_reg, bt);
+        real = compile_term(env, out, bt);
     }
 
 private:
@@ -52,8 +54,7 @@ public:
     inner_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -84,8 +85,7 @@ public:
     outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -124,8 +124,7 @@ public:
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &left_attr = in->args(1);
@@ -157,8 +156,7 @@ public:
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         auto x = pb::dummy_var_t::IGNORED;
 
@@ -175,8 +173,7 @@ public:
     update_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         auto old_row = pb::dummy_var_t::UPDATE_OLDROW;
         auto new_row = pb::dummy_var_t::UPDATE_NEWROW;
@@ -207,8 +204,7 @@ public:
     skip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         r::reql_t term =
             r::expr(in->args(0)).slice(in->args(1), -1,
@@ -225,8 +221,7 @@ public:
     difference_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
         auto row = pb::dummy_var_t::DIFFERENCE_ROW;
 
@@ -247,8 +242,7 @@ public:
     with_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
+    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t,
                              protob_t<const Term> optargs_in) {
 
         r::reql_t has_fields = r::expr(in->args(0)).has_fields();

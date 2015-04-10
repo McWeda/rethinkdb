@@ -18,10 +18,14 @@ wire_func_t::wire_func_t(const counted_t<const func_t> &f) : func(f) {
     r_sanity_check(func.has());
 }
 
-wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
-                         backtrace_id_t backtrace) {
-    compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names));
-    func = make_counted<reql_func_t>(backtrace, var_scope_t(), arg_names, compile_term(&env, body));
+wire_func_t::wire_func_t(protob_t<const Term> body,
+                         std::vector<sym_t> arg_names,
+                         backtrace_id_t bt) {
+    // The dummy registry will ensure all sub-terms use this backtrace
+    dummy_backtrace_registry_t dummy_reg(bt);
+    compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names), &dummy_reg);
+    func = make_counted<reql_func_t>(bt, var_scope_t(), arg_names,
+                                     compile_term(&env, body, bt));
 }
 
 wire_func_t::wire_func_t(const wire_func_t &copyee)
@@ -108,14 +112,15 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         res = deserialize_protobuf(s, &*body);
         if (bad(res)) { return res; }
 
-        backtrace_id_t backtrace;
-        res = deserialize_protobuf(s, &backtrace);
+        backtrace_id_t bt;
+        res = deserialize_protobuf(s, &bt);
         if (bad(res)) { return res; }
 
+        dummy_backtrace_registry_t dummy_reg(bt);
         compile_env_t env(
-            scope.compute_visibility().with_func_arg_name_list(arg_names));
+            scope.compute_visibility().with_func_arg_name_list(arg_names), &dummy_reg);
         wf->func = make_counted<reql_func_t>(
-            backtrace, scope, arg_names, compile_term(&env, body));
+            bt, scope, arg_names, compile_term(&env, body, bt));
         return res;
     } break;
     case wire_func_type_t::JS: {
@@ -127,11 +132,11 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         res = deserialize<W>(s, &js_timeout_ms);
         if (bad(res)) { return res; }
 
-        backtrace_id_t backtrace;
-        res = deserialize_protobuf(s, &backtrace);
+        backtrace_id_t bt;
+        res = deserialize_protobuf(s, &bt);
         if (bad(res)) { return res; }
 
-        wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
+        wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, bt);
         return res;
     } break;
     default:

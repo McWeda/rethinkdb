@@ -9,9 +9,19 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
+<<<<<<< Updated upstream
     datum_term_t(compile_env_t *env, protob_t<const Term> t, backtrace_id_t bt,
                  const configured_limits_t &limits, reql_version_t reql_version)
         : term_t(env, t, bt), datum(to_datum(&t->datum(), limits, reql_version)) { }
+||||||| merged common ancestors
+    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits,
+                 reql_version_t reql_version)
+        : term_t(t), datum(to_datum(&t->datum(), limits, reql_version)) { }
+=======
+    datum_term_t(compile_env_t *env, protob_t<const Term> t,
+                 const configured_limits_t &limits, reql_version_t reql_version)
+        : term_t(env, t), datum(to_datum(&t->datum(), limits, reql_version)) { }
+>>>>>>> Stashed changes
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
@@ -131,24 +141,24 @@ private:
 counted_t<term_t> make_datum_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,
         const configured_limits_t &limits, reql_version_t reql_version) {
-    return make_counted<datum_term_t>(term, limits, reql_version);
+    return make_counted<datum_term_t>(term, bt, limits, reql_version);
 }
 counted_t<term_t> make_constant_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,
         double constant, const char *name) {
-    return make_counted<constant_term_t>(env, term, constant, name);
+    return make_counted<constant_term_t>(env, term, bt, constant, name);
 }
 counted_t<term_t> make_make_array_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
-    return make_counted<make_array_term_t>(env, term);
+    return make_counted<make_array_term_t>(env, term, bt);
 }
 counted_t<term_t> make_make_obj_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
-    return make_counted<make_obj_term_t>(env, term);
+    return make_counted<make_obj_term_t>(env, term, bt);
 }
 counted_t<term_t> make_binary_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
-    return make_counted<binary_term_t>(env, term);
+    return make_counted<binary_term_t>(env, term, bt);
 }
 
 } // namespace ql

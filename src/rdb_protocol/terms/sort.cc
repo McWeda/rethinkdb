@@ -226,7 +226,6 @@ private:
                     r::reql_t f = r::var(row)[idx_str];
                     body->Swap(&f.get());
                 }
-                propagate(body.get());
                 counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 map_wire_func_t mwf(body, std::move(distinct_args), backtrace());
                 s->add_transformation(std::move(mwf), backtrace());

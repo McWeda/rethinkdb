@@ -713,7 +713,7 @@ counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
 }
 
 datum_stream_t::datum_stream_t(backtrace_id_t bt_src)
-    : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
+    : bt_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
 }
 
 void datum_stream_t::add_grouping(transform_variant_t &&tv,

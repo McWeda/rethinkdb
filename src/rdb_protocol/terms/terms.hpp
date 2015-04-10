@@ -78,9 +78,9 @@ counted_t<term_t> make_funcall_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // datum_terms.cc
-counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
-                                  const configured_limits_t &limits,
-                                  reql_version_t reql_version);
+counted_t<term_t> make_datum_term(
+    compile_env_t *env, const protob_t<const Term> &term,
+    const configured_limits_t &limits, reql_version_t reql_version);
 counted_t<term_t> make_constant_term(
     compile_env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name);

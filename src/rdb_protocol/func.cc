@@ -11,7 +11,7 @@
 namespace ql {
 
 func_t::func_t(backtrace_id_t bt_source)
-  : pb_rcheckable_t(bt_source) { }
+  : bt_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
 
 scoped_ptr_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
@@ -140,8 +140,8 @@ void js_func_t::visit(func_visitor_t *visitor) const {
     visitor->on_js_func(this);
 }
 
-func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
-    : term_t(t) {
+func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t, backtrace_id_t bt)
+    : term_t(t, bt) {
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -186,10 +186,10 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
 
     var_visibility_t varname_visibility = env->visibility.with_func_arg_name_list(args);
 
-    compile_env_t body_env(std::move(varname_visibility));
+    compile_env_t body_env(std::move(varname_visibility), env->bt_reg);
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
-    counted_t<const term_t> compiled_body = compile_term(&body_env, body_source);
+    counted_t<const term_t> compiled_body = compile_term(&body_env, body_source, bt);
     r_sanity_check(compiled_body.has());
 
     var_captures_t captures;
@@ -218,7 +218,7 @@ scoped_ptr_t<val_t> func_term_t::term_eval(scope_env_t *env,
 }
 
 counted_t<const func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
-    return make_counted<reql_func_t>(get_backtrace(get_src()),
+    return make_counted<reql_func_t>(backtrace(),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);
 }
@@ -332,55 +332,58 @@ bool func_t::filter_call(env_t *env, datum_t arg, counted_t<const func_t> defaul
 }
 
 counted_t<const func_t> new_constant_func(datum_t obj,
-                                          backtrace_id_t bt_src) {
+                                          backtrace_id_t bt) {
     protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env((var_visibility_t()));
+    // The dummy registry will ensure all sub-terms use this backtrace
+    dummy_backtrace_registry_t dummy_reg(bt);
+    compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
-                                                                 twrap);
+                                                                 twrap, bt);
     return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<const func_t> new_get_field_func(datum_t key,
-                                           backtrace_id_t bt_src) {
+                                           backtrace_id_t bt) {
     pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
     protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
 
-    propagate_backtrace(twrap.get(), bt_src.get());
-
-    compile_env_t empty_compile_env((var_visibility_t()));
+    // The dummy registry will ensure all sub-terms use this backtrace
+    dummy_backtrace_registry_t dummy_reg(bt);
+    compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
-                                                                 twrap);
+                                                                 twrap, bt);
     return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<const func_t> new_pluck_func(datum_t obj,
-                                       backtrace_id_t bt_src) {
+                                       backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
     protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env((var_visibility_t()));
+    // The dummy registry will ensure all sub-terms use this backtrace
+    dummy_backtrace_registry_t dummy_reg(bt);
+    compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
-                                                                 twrap);
+                                                                 twrap, bt);
     return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<const func_t> new_eq_comparison_func(datum_t obj,
-                                               backtrace_id_t bt_src) {
+                                               backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
     protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env((var_visibility_t()));
+    // The dummy registry will ensure all sub-terms use this backtrace
+    dummy_backtrace_registry_t dummy_reg(bt);
+    compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
-                                                                 twrap);
+                                                                 twrap, bt);
     return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<const func_t> new_page_func(datum_t method,
-                                      backtrace_id_t bt_src) {
+                                      backtrace_id_t bt) {
     if (method.get_type() != datum_t::R_NULL) {
         std::string name = method.as_str().to_std();
         if (name == "link-next") {
@@ -391,16 +394,16 @@ counted_t<const func_t> new_page_func(datum_t method,
                            .default_(r::null()))
                 .release_counted();
 
-            propagate_backtrace(twrap.get(), bt_src.get());
-
-            compile_env_t empty_compile_env((var_visibility_t()));
+            // The dummy registry will ensure all sub-terms use this backtrace
+            dummy_backtrace_registry_t dummy_reg(bt);
+            compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
             counted_t<func_term_t> func_term =
-                make_counted<func_term_t>(&empty_compile_env, twrap);
+                make_counted<func_term_t>(&empty_compile_env, twrap, bt);
             return func_term->eval_to_func(var_scope_t());
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), false, base_exc_t::GENERIC, msg);
+            rcheck_src(bt, false, base_exc_t::GENERIC, msg);
         }
     }
     return counted_t<const func_t>();

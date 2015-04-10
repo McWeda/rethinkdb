@@ -25,7 +25,7 @@ namespace ql {
 
 class func_visitor_t;
 
-class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
+class func_t : public slow_atomic_countable_t<func_t>, public bt_rcheckable_t {
 public:
     virtual ~func_t();
 
@@ -70,7 +70,7 @@ private:
 
 class reql_func_t : public func_t {
 public:
-    reql_func_t(backtrace_id_t backtrace,  // for pb_rcheckable_t
+    reql_func_t(backtrace_id_t backtrace,  // for bt_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<const term_t> body);
@@ -168,7 +168,7 @@ class js_result_visitor_t : public boost::static_visitor<val_t *> {
 public:
     js_result_visitor_t(const std::string &_code,
                         uint64_t _timeout_ms,
-                        const pb_rcheckable_t *_parent)
+                        const bt_rcheckable_t *_parent)
         : code(_code),
           timeout_ms(_timeout_ms),
           parent(_parent) { }
@@ -186,7 +186,7 @@ public:
 private:
     std::string code;
     uint64_t timeout_ms;
-    const pb_rcheckable_t *parent;
+    const bt_rcheckable_t *parent;
 };
 
 // Evaluating this returns a `func_t` wrapped in a `val_t`.

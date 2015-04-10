@@ -28,6 +28,11 @@ public:
     explicit base_exc_t(type_t type) : type_(type) { }
     virtual ~base_exc_t() throw () { }
     type_t get_type() const { return type_; }
+
+    // Returns an empty backtrace, overridden by subclasses with a real backtrace
+    virtual ql::datum_t backtrace(const backtrace_registry_t &reg) const {
+        return reg.get_backtrace(EMPTY_BACKTRACE_ID, 0);   
+    }
 protected:
     type_t type_;
 };
@@ -56,14 +61,12 @@ public:
                               std::string msg) const = 0;
 };
 
-backtrace_id_t get_backtrace(const protob_t<const Term> &t);
-
-// This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
+// This is a particular type of rcheckable.  A `bt_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
 // backtrace.  (By contrast, a normal rcheckable might produce an error with no
 // backtrace, e.g. if we some constraint that doesn't involve the user's code
 // is violated.)
-class pb_rcheckable_t : public rcheckable_t {
+class bt_rcheckable_t : public rcheckable_t {
 public:
     virtual void runtime_fail(base_exc_t::type_t type,
                               const char *test, const char *file, int line,
@@ -77,7 +80,7 @@ public:
     backtrace_id_t backtrace() const { return bt_src; }
 
 protected:
-    explicit pb_rcheckable_t(backtrace_id_t _bt_src)
+    explicit bt_rcheckable_t(backtrace_id_t _bt_src)
         : bt_src(_bt_src) { }
 
     backtrace_id_t update_bt(backtrace_id_t new_bt) {
@@ -180,40 +183,31 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 #endif // NDEBUG
 
 typedef uint32_t backtrace_id_t;
+const backtrace_id_t EMPTY_BACKTRACE_ID = 0;
 
 // Converts backtrace ids into a backtrace we can return to the user.
 class backtrace_registry_t {
 public:
-    class frame_t {
-    public:
-        frame_t(const frame_t *_parent, int32_t _pos) :
-            parent(_parent), type(type_t::POS), pos(_pos) { }
-        frame_t(const frame_t *_parent, const std::string &_opt) :
-            parent(_parent), type(type_t::OPT), opt(_opt) { }
-        frame_t(const frame_t *_parent, const char *_opt) :
-            parent(_parent), type(type_t::OPT), opt(_opt) { }
-
-        bool is_head() const { return parent == nullptr; }
-        bool is_stream_funcall_frame() {
-            return type == POS && pos != 0;
-        }
-
-    private:
-        backtrace_id_t parent;
-        enum class type_t { POS = 0, OPT = 1 } type;
-        int32_t pos;
-        std::string opt;
-
-        DISABLE_COPYING(frame_t);
-    };
-
-    backtrace_id_t new_frame(backtrace_id_t parent_bt, int32_t arg);
-    backtrace_id_t new_frame(backtrace_id_t parent_bt, const std::string &optarg);
-    backtrace_id_t new_frame(backtrace_id_t parent_bt, const char *optarg);
+    template <class T>
+    backtrace_id_t new_frame(backtrace_id_t parent_bt, const T &val) {
+        frames.emplace_back(parent_bt, datum_t(val));
+    }
 
     ql::datum_t get_backtrace(backtrace_id_t bt, size_t dummy_frames);
 
 private:
+    struct frame_t {
+        frame_t(backtrace_id_t _parent, datum_t _val) :
+            parent(_parent), val(_val) { }
+
+        bool is_head() const {
+            return val.get_type() == datum_t::type_t::R_NULLL;
+        }
+
+        backtrace_id_t parent;
+        ql::datum_t val;
+    };
+
     // TODO: use a hashmap or something?
     std::vector<frame_t> frames;
 
@@ -232,8 +226,9 @@ public:
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return msg.c_str(); }
-    ql::datum_t to_backtrace(const backtrace_registry_t &bt_reg) {
-        return bt_reg.get_backtrace(bt, dummy_frames);
+
+    ql::datum_t backtrace(const backtrace_registry_t &reg) const {
+        return reg.get_backtrace(bt, dummy_frames);   
     }
 
     RDB_DECLARE_ME_SERIALIZABLE(exc_t);
@@ -261,7 +256,13 @@ private:
     std::string msg;
 };
 
-void fill_error(Response *res, Response_ResponseType type, std::string msg, datum_t bt);
+void fill_backtrace(Backtrace *bt_out,
+                    ql::datum_t backtrace);
+
+void fill_error(Response *res_out,
+                Response::ResponseType type,
+                const char *message,
+                ql::datum_t backtrace);
 
 } // namespace ql
 

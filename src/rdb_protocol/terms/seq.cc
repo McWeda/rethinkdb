@@ -309,11 +309,11 @@ private:
     virtual const char *name() const { return "reduce"; }
 };
 
-struct rcheck_transform_visitor_t : public pb_rcheckable_t,
+struct rcheck_transform_visitor_t : public bt_rcheckable_t,
                                     public boost::static_visitor<void> {
     template<class... Args>
     explicit rcheck_transform_visitor_t(Args &&... args)
-        : pb_rcheckable_t(std::forward<Args...>(args)...) { }
+        : bt_rcheckable_t(std::forward<Args...>(args)...) { }
     void check_f(const wire_func_t &f) const {
         rcheck_src(f.get_bt().get(),
                    f.compile_wire_func()->is_deterministic(),
@@ -351,11 +351,11 @@ struct rcheck_transform_visitor_t : public pb_rcheckable_t,
     }
 };
 
-struct rcheck_spec_visitor_t : public pb_rcheckable_t,
+struct rcheck_spec_visitor_t : public bt_rcheckable_t,
                                public boost::static_visitor<void> {
     template<class... Args>
     explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
-        : pb_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
+        : bt_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
     void operator()(const changefeed::keyspec_t::range_t &spec) const {
         for (const auto &t : spec.transforms) {
             boost::apply_visitor(rcheck_transform_visitor_t(backtrace()), t);

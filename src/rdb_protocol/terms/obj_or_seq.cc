@@ -41,8 +41,6 @@ obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
     } break;
     default: unreachable();
     }
-
-    self->prop_bt(func.get());
 }
 
 scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
@@ -87,7 +85,8 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
                                     target->name()));
         }
 
-        compile_env_t compile_env(env->scope.compute_visibility());
+        dummy_backtrace_registry_t dummy_reg(target->backtrace());
+        compile_env_t compile_env(env->scope.compute_visibility(), &dummy_reg);
         counted_t<func_term_t> func_term
             = make_counted<func_term_t>(&compile_env, func, target->backtrace());
         counted_t<const func_t> f = func_term->eval_to_func(env->scope);

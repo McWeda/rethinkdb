@@ -174,9 +174,7 @@ message Response {
     // specifies either the index of a positional argument or the name of an
     // optional argument.  (Those words will make more sense if you look at the
     // [Term] message below.)
-    // Used internally, will be transformed to a Backtrace in the JSON protocol,
-    // containing n [Frame]s.
-    optional int64 backtrace = 4;
+    optional Backtrace backtrace = 4; // Contains n [Frame]s when you get back an error.
 
     // If the [global_optargs] in the [Query] that this [Response] is a
     // response to contains a key "profile" which maps to a static value of
@@ -761,8 +759,6 @@ message Term {
     repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
     // (Note that the order of the optional arguments doesn't matter; think of a
     // Hash.)
-
-    extensions 10000 to 20000;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

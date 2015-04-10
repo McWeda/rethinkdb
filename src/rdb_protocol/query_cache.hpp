@@ -33,7 +33,7 @@ class query_cache_exc_t : public std::exception {
 public:
     query_cache_exc_t(Response_ResponseType _type,
                       std::string _message,
-                      backtrace_t _bt);
+                      datum_t _bt_datum);
     ~query_cache_exc_t() throw ();
 
     void fill_response(Response *res) const;
@@ -41,7 +41,7 @@ public:
 
     const Response_ResponseType type;
     const std::string message;
-    const backtrace_t bt;
+    const datum_t bt_datum;
 };
 
 // A query id, should be allocated when each query is received from the client

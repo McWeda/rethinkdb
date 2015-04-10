@@ -77,8 +77,8 @@ public:
             protob_t<Term> func_term
                 = r::fun(x, r::var(x)[name_datum]).release_counted();
 
-            prop_bt(func_term.get());
-            compile_env_t empty_compile_env((var_visibility_t()));
+            dummy_backtrace_registry_t dummy_reg(backtrace());
+            compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
                 &empty_compile_env, func_term);
 

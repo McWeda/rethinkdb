@@ -64,7 +64,7 @@ private:
 };
 
 
-class arg_terms_t : public pb_rcheckable_t {
+class arg_terms_t : public bt_rcheckable_t {
 public:
     arg_terms_t(protob_t<const Term> _src,
                 argspec_t _argspec,
@@ -86,7 +86,7 @@ private:
 arg_terms_t::arg_terms_t(protob_t<const Term> _src,
                          argspec_t _argspec,
                          std::vector<counted_t<const term_t> > _original_args)
-    : pb_rcheckable_t(get_backtrace(_src)),
+    : bt_rcheckable_t(get_backtrace(_src)),
       src(std::move(_src)),
       argspec(std::move(_argspec)),
       original_args(std::move(_original_args)) {
@@ -164,25 +164,27 @@ args_t::args_t(const op_term_t *_op_term,
     : op_term(_op_term), argv(std::move(_argv)), arg0(std::move(_arg0)) { }
 
 
-op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
+op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term, backtrace_id_t bt,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(term) {
     std::vector<counted_t<const term_t> > original_args;
     original_args.reserve(term->args_size());
     for (int i = 0; i < term->args_size(); ++i) {
+        backtrace_id_t child_bt = env->bt_reg->new_frame(bt, i);
         counted_t<const term_t> t
-            = compile_term(env, term.make_child(&term->args(i)));
+            = compile_term(env, term.make_child(&term->args(i)), child_bt);
         original_args.push_back(t);
     }
     arg_terms.init(new arg_terms_t(term, std::move(argspec), std::move(original_args)));
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
+        backtrace_id_t child_bt = env->bt_reg->new_frame(bt, ap->key());
         rcheck(optargspec.contains(ap->key()),
                base_exc_t::GENERIC,
                strprintf("Unrecognized optional argument `%s`.",
                          ap->key().c_str()));
-        counted_t<const term_t> t = compile_term(env, term.make_child(&ap->val()));
+        counted_t<const term_t> t = compile_term(env, term.make_child(&ap->val()), child_bt);
         auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
         rcheck(res.second,
                base_exc_t::GENERIC,

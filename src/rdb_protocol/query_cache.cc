@@ -9,14 +9,10 @@ namespace ql {
 
 query_cache_exc_t::query_cache_exc_t(Response_ResponseType _type,
                                      std::string _message,
-                                     backtrace_t _bt) :
-    type(_type), message(_message), bt(_bt) { }
+                                     datum_t _bt_datum) :
+    type(_type), message(_message), bt_datum(_bt_datum) { }
 
 query_cache_exc_t::~query_cache_exc_t() throw () { }
-
-void query_cache_exc_t::fill_response(Response *res) const {
-    fill_error(res, type, message.c_str(), bt);
-}
 
 const char *query_cache_exc_t::what() const throw () {
     return message.c_str();
@@ -100,25 +96,29 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
         signal_t *interruptor) {
     if (queries.find(token) != queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("ERROR: duplicate token %" PRIi64, token), backtrace_t());
+            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
     }
 
     counted_t<const term_t> root_term;
+    backtrace_registry_t bt_reg;
     std::map<std::string, wire_func_t> global_optargs;
     try {
         // Parsing the global optargs also pre-processes the query
         global_optargs = parse_global_optargs(original_query);
 
         Term *t = original_query->mutable_query();
-        compile_env_t compile_env((var_visibility_t()));
-        root_term = compile_term(&compile_env, original_query.make_child(t));
-    } catch (const exc_t &e) {
+        compile_env_t compile_env((var_visibility_t()), &bt_reg);
+        root_term = compile_term(&compile_env, original_query.make_child(t), EMPTY_BACKTRACE_ID);
+    } catch (const term_walker_exc_t &e) {
         throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), e.backtrace());
+    } catch (const exc_t &e) {
+        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), e.backtrace(bt_reg));
     } catch (const datum_exc_t &e) {
-        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), backtrace_t());
+        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), EMPTY_BACKTRACE);
     }
 
     scoped_ptr_t<entry_t> entry(new entry_t(original_query,
+                                            std::move(bt_reg),
                                             std::move(global_optargs),
                                             std::move(root_term)));
     scoped_ptr_t<ref_t> ref(new ref_t(this,
@@ -138,7 +138,7 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::get(
     auto it = queries.find(token);
     if (it == queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("Token %" PRIi64 " not in stream cache.", token), backtrace_t());
+            strprintf("Token %" PRIi64 " not in stream cache.", token), EMPTY_BACKTRACE);
     }
 
     return scoped_ptr_t<ref_t>(new ref_t(this,
@@ -154,7 +154,7 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
     auto it = queries.find(token);
     if (it != queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("ERROR: duplicate token %" PRIi64, token), backtrace_t());
+            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
     }
 
     oldest_outstanding_query_id.get_watchable()->run_until_satisfied(
@@ -227,8 +227,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         // getting the response for the last use of the token.
         // In this case, just pretend it's a duplicate token issue
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-                                strprintf("ERROR: duplicate token %" PRIi64, token),
-                                backtrace_t());
+            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
     }
 
     try {
@@ -254,7 +253,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         if (entry->persistent_interruptor.is_pulsed()) {
             if (entry->state != entry_t::state_t::DONE) {
                 throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                    "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
+                    "Query terminated by the `rethinkdb.jobs` table.", EMPTY_BACKTRACE);
             }
             // For compatibility, we return a SUCCESS_SEQUENCE in this case
             res->Clear();
@@ -265,7 +264,8 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         }
     } catch (...) {
         query_cache->terminate_internal(entry);
-        throw;
+        throw query_cache_exc_t(Response::RUNTIME_ERROR,
+                                e.what(), e.backtrace(entry->bt_reg));
     }
 }
 
