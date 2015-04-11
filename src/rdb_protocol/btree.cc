@@ -930,7 +930,7 @@ void rdb_get_nearest_slice(
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =
-                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), ql::EMPTY_BACKTRACE_ID);
         }
         if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
             response->results_or_error = partial_response.results_or_error;

@@ -46,10 +46,6 @@ void rdb_query_server_t::run_query(ql::query_id_t &&query_id,
         guarantee(rdb_ctx->cluster_interface);
         // `ql::run` will set the status code
         ql::run(std::move(query_id), query, response_out, query_cache, interruptor);
-    } catch (const ql::exc_t &e) {
-        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
-    } catch (const ql::datum_exc_t &e) {
-        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     } catch (const interrupted_exc_t &ex) {
         throw; // Interruptions should be handled by our caller, who can provide context
 #ifdef NDEBUG // In debug mode we crash, in release we send an error.

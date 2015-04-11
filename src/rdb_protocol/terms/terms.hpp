@@ -5,6 +5,7 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 class compile_env_t;
@@ -79,7 +80,7 @@ counted_t<term_t> make_funcall_term(
 
 // datum_terms.cc
 counted_t<term_t> make_datum_term(
-    compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,
+    const protob_t<const Term> &term, backtrace_id_t bt,
     const configured_limits_t &limits, reql_version_t reql_version);
 counted_t<term_t> make_constant_term(
     compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,

@@ -192,7 +192,8 @@ private:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(compile_env_t *env, const protob_t<const Term> &term);
+    func_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                backtrace_id_t bt);
 
     // eval(scope_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
     // going by way of val_t, and without requiring a full-blown env.

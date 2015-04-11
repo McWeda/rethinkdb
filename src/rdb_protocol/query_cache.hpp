@@ -19,10 +19,11 @@
 #include "containers/counted.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-#include "rdb_protocol/term.hpp"
-#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 class env_t;

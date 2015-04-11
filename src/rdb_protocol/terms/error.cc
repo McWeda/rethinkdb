@@ -52,7 +52,7 @@ private:
             }
         } catch (const datum_exc_t &e) {
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                err.init(new exc_t(e.get_type(), e.what(), backtrace().get()));
+                err.init(new exc_t(e.get_type(), e.what(), backtrace()));
                 func_arg = datum_t(e.what());
             } else {
                 throw;

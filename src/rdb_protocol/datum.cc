@@ -1018,14 +1018,10 @@ std::string datum_t::compose_secondary(
     boost::optional<uint64_t> tag_num) {
 
     std::string primary_key_string = key_to_unescaped_str(primary_key);
-    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        throw exc_t(base_exc_t::GENERIC,
-            strprintf(
-                "Primary key too long (max %zu characters): %s",
-                rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
-                key_to_debug_str(primary_key).c_str()),
-            NULL);
-    }
+    rcheck_toplevel(primary_key_string.length() <= rdb_protocol::MAX_PRIMARY_KEY_SIZE,
+        base_exc_t::GENERIC, strprintf("Primary key too long (max %zu characters): %s",
+                                       rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
+                                       key_to_debug_str(primary_key).c_str()));
 
     std::string tag_string;
     if (tag_num) {

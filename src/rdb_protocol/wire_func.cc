@@ -4,6 +4,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/archive.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -67,7 +68,7 @@ public:
         const protob_t<const Term> &body = reql_func->body->get_src();
         serialize_protobuf(wm, *body);
         backtrace_id_t backtrace = reql_func->backtrace();
-        serialize_protobuf(wm, *backtrace);
+        serialize<W>(wm, backtrace);
     }
 
     void on_js_func(const js_func_t *js_func) {
@@ -77,7 +78,7 @@ public:
         const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
         serialize<W>(wm, js_timeout_ms);
         backtrace_id_t backtrace = js_func->backtrace();
-        serialize_protobuf(wm, *backtrace);
+        serialize<W>(wm, backtrace);
     }
 
 private:
@@ -113,7 +114,7 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         if (bad(res)) { return res; }
 
         backtrace_id_t bt;
-        res = deserialize_protobuf(s, &bt);
+        res = deserialize<W>(s, &bt);
         if (bad(res)) { return res; }
 
         dummy_backtrace_registry_t dummy_reg(bt);
@@ -133,7 +134,7 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         if (bad(res)) { return res; }
 
         backtrace_id_t bt;
-        res = deserialize_protobuf(s, &bt);
+        res = deserialize<W>(s, &bt);
         if (bad(res)) { return res; }
 
         wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, bt);
@@ -206,7 +207,7 @@ bool group_wire_func_t::is_multi() const {
 }
 
 backtrace_id_t group_wire_func_t::get_bt() const {
-    return bt.get_bt();
+    return bt;
 }
 
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);

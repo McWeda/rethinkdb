@@ -6,6 +6,7 @@
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -48,7 +49,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     dummy_backtrace_registry_t dummy_reg(EMPTY_BACKTRACE_ID);
     compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
     counted_t<func_term_t> func_term
-        = make_counted<func_term_t>(&empty_compile_env, arg);
+        = make_counted<func_term_t>(&empty_compile_env, arg, EMPTY_BACKTRACE_ID);
     counted_t<const func_t> func = func_term->eval_to_func(var_scope_t());
     return wire_func_t(func);
 }

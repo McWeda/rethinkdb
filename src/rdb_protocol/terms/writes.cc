@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -258,8 +259,9 @@ private:
                 // Attach a transformation to `ds` to pull out the primary key.
                 auto x = pb::dummy_var_t::REPLACE_HELPER_ROW;
                 r::reql_t map = r::fun(x, r::expr(x)[tbl->get_pkey()]);
-                compile_env_t compile_env((var_visibility_t()));
-                func_term_t func_term(&compile_env, map.release_counted());
+                dummy_backtrace_registry_t dummy_reg(backtrace()); // TODO: RSI: is this necessary?
+                compile_env_t compile_env((var_visibility_t()), &dummy_reg);
+                func_term_t func_term(&compile_env, map.release_counted(), backtrace());
                 var_scope_t var_scope;
                 counted_t<const func_t> func = func_term.eval_to_func(var_scope);
                 ds->add_transformation(map_wire_func_t(func), backtrace());
@@ -333,7 +335,7 @@ private:
                         }
                     }
                 } catch (const exc_t &e) {
-                    throw exc_t(e.get_type(), fail_msg, e.backtrace());
+                    throw exc_t(e, e.backtrace(), e.dummy_frames());
                 } catch (const datum_exc_t &de) {
                     rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
                 }

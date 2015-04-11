@@ -72,7 +72,7 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v) {
     return exc_type(v.get());
 }
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(exc_t, type_, msg, bt, dummy_frames);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(exc_t, type_, msg, bt, dummy_frames_);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(datum_exc_t, type_, msg);
 
 } // namespace ql

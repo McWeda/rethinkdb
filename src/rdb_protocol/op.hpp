@@ -169,7 +169,8 @@ private:
 class bounded_op_term_t : public op_term_t {
 public:
     bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
+                      backtrace_id_t bt, argspec_t argspec,
+                      optargspec_t optargspec = optargspec_t({}));
 
     virtual ~bounded_op_term_t() { }
 

@@ -324,7 +324,7 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
     explicit rcheck_transform_visitor_t(Args &&... args)
         : bt_rcheckable_t(std::forward<Args...>(args)...) { }
     void check_f(const wire_func_t &f) const {
-        rcheck_src(f.get_bt().get(),
+        rcheck_src(f.get_bt(),
                    f.compile_wire_func()->is_deterministic(),
                    base_exc_t::GENERIC,
                    "Cannot call `changes` after a non-deterministic function.");

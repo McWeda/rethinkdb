@@ -183,7 +183,7 @@ std::string create_sindex(namespace_interface_t *nsi,
     const ql::sym_t arg(1);
     ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
 
-    ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
+    ql::map_wire_func_t m(mapping, make_vector(arg), ql::EMPTY_BACKTRACE_ID);
 
     write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::REGULAR),
@@ -806,7 +806,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }
-        backtrace_id_t bt;
+        ql::backtrace_id_t bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
     cond_t interruptor;

@@ -57,7 +57,7 @@ private:
 
 class prepend_term_t : public pend_term_t {
 public:
-    prepend_term_t(compile_env_t *env, const protob_t<const Term> &term
+    prepend_term_t(compile_env_t *env, const protob_t<const Term> &term,
                    backtrace_id_t bt)
         : pend_term_t(env, term, bt) { }
 private:

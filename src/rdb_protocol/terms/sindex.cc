@@ -4,6 +4,7 @@
 #include <string>
 
 #include "rdb_protocol/real_table.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
@@ -81,7 +82,7 @@ public:
             dummy_backtrace_registry_t dummy_reg(backtrace());
             compile_env_t empty_compile_env((var_visibility_t()), &dummy_reg);
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
-                &empty_compile_env, func_term);
+                &empty_compile_env, func_term, backtrace());
 
             index_func = func_term_term->eval_to_func(env->scope);
         }

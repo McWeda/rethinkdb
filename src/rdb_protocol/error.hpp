@@ -128,7 +128,7 @@ private:
     } while (0)
 #define rcheck(pred, type, msg) rcheck_target(this, pred, type, msg)
 #define rcheck_toplevel(pred, type, msg) \
-    rcheck_src(NULL, pred, type, msg)
+    rcheck_src(ql::EMPTY_BACKTRACE_ID, pred, type, msg)
 
 #define rfail_datum(type, args...) do {                          \
         rcheck_datum(false, type, strprintf(args));              \
@@ -184,20 +184,21 @@ public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), msg("UNINITIALIZED") { }
     exc_t(base_exc_t::type_t type, const std::string &_msg, backtrace_id_t _bt)
-        : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames(0) { }
+        : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames_(0) { }
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
-        : base_exc_t(e.get_type()), msg(e.what()), bt(_bt), dummy_frames(_dummy_frames) { }
+        : base_exc_t(e.get_type()), msg(e.what()), bt(_bt), dummy_frames_(_dummy_frames) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return msg.c_str(); }
 
+    backtrace_id_t backtrace() const { return bt; }
+    size_t dummy_frames() const { return dummy_frames_; }
+
     RDB_DECLARE_ME_SERIALIZABLE(exc_t);
 private:
-    friend class backtrace_registry_t;
-
     std::string msg;
     backtrace_id_t bt;
-    size_t dummy_frames;
+    size_t dummy_frames_;
 };
 
 // A datum exception is like a normal RQL exception, except it doesn't

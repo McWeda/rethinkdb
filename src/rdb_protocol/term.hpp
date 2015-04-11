@@ -53,7 +53,7 @@ private:
 
 class term_t : public runtime_term_t {
 public:
-    explicit term_t(protob_t<const Term> _src);
+    explicit term_t(protob_t<const Term> _src, backtrace_id_t bt);
     virtual ~term_t();
 
 

@@ -2,6 +2,7 @@
 #include "rdb_protocol/query_cache.hpp"
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 #include "debug.hpp"
 
@@ -96,7 +97,8 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
         signal_t *interruptor) {
     if (queries.find(token) != queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
+            strprintf("ERROR: duplicate token %" PRIi64, token),
+            backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     counted_t<const term_t> root_term;
@@ -108,7 +110,8 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
 
         Term *t = original_query->mutable_query();
         compile_env_t compile_env((var_visibility_t()), &bt_reg);
-        root_term = compile_term(&compile_env, original_query.make_child(t), EMPTY_BACKTRACE_ID);
+        root_term = compile_term(&compile_env, original_query.make_child(t),
+                                 EMPTY_BACKTRACE_ID);
     } catch (const term_walker_exc_t &e) {
         throw query_cache_exc_t(Response::COMPILE_ERROR,
                                 e.what(), e.backtrace());
@@ -116,8 +119,8 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
         throw query_cache_exc_t(Response::COMPILE_ERROR,
                                 e.what(), bt_reg.datum_backtrace(e));
     } catch (const datum_exc_t &e) {
-        throw query_cache_exc_t(Response::COMPILE_ERROR,
-                                e.what(), EMPTY_BACKTRACE);
+        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(),
+                                backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     scoped_ptr_t<entry_t> entry(new entry_t(original_query,
@@ -141,7 +144,8 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::get(
     auto it = queries.find(token);
     if (it == queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("Token %" PRIi64 " not in stream cache.", token), EMPTY_BACKTRACE);
+            strprintf("Token %" PRIi64 " not in stream cache.", token),
+            backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     return scoped_ptr_t<ref_t>(new ref_t(this,
@@ -157,7 +161,8 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
     auto it = queries.find(token);
     if (it != queries.end()) {
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
+            strprintf("ERROR: duplicate token %" PRIi64, token),
+            backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     oldest_outstanding_query_id.get_watchable()->run_until_satisfied(
@@ -230,7 +235,8 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         // getting the response for the last use of the token.
         // In this case, just pretend it's a duplicate token issue
         throw query_cache_exc_t(Response::CLIENT_ERROR,
-            strprintf("ERROR: duplicate token %" PRIi64, token), EMPTY_BACKTRACE);
+            strprintf("ERROR: duplicate token %" PRIi64, token),
+            backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     try {
@@ -256,7 +262,8 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         if (entry->persistent_interruptor.is_pulsed()) {
             if (entry->state != entry_t::state_t::DONE) {
                 throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                    "Query terminated by the `rethinkdb.jobs` table.", EMPTY_BACKTRACE);
+                    "Query terminated by the `rethinkdb.jobs` table.",
+                    backtrace_registry_t::EMPTY_BACKTRACE);
             }
             // For compatibility, we return a SUCCESS_SEQUENCE in this case
             res->Clear();
@@ -265,10 +272,14 @@ void query_cache_t::ref_t::fill_response(Response *res) {
             query_cache->terminate_internal(entry);
             throw;
         }
-    } catch (...) {
+    } catch (const exc_t &ex) {
         query_cache->terminate_internal(entry);
-        throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                                e.what(), entry->bt_reg.datum_backtrace(e));
+        throw query_cache_exc_t(Response::RUNTIME_ERROR, ex.what(),
+                                entry->bt_reg.datum_backtrace(ex));
+    } catch (const std::exception &ex) {
+        query_cache->terminate_internal(entry);
+        throw query_cache_exc_t(Response::RUNTIME_ERROR, ex.what(), 
+                                backtrace_registry_t::EMPTY_BACKTRACE);
     }
 }
 
@@ -358,7 +369,7 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
 }
 
 query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,
-                                backtrace_registry_t &&_bt_reg,
+                                real_backtrace_registry_t &&_bt_reg,
                                 std::map<std::string, wire_func_t> &&_global_optargs,
                                 counted_t<const term_t> _root_term) :
         state(state_t::START),

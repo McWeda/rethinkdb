@@ -73,7 +73,7 @@ public:
             batchspec_t batchspec = batchspec_t::all().with_at_most(1);
             row = slice->as_seq(env, bt)->next(env, batchspec);
             if (!row.has()) {
-                rfail_src(bt.get(), base_exc_t::GENERIC, "%s", err.c_str());
+                rfail_src(bt, base_exc_t::GENERIC, "%s", err.c_str());
             }
         }
         return row;
@@ -672,7 +672,7 @@ counted_t<const func_t> val_t::as_func(function_shortcut_t shortcut) {
         default: unreachable();
         }
     } catch (const datum_exc_t &ex) {
-        throw exc_t(ex, backtrace().get());
+        throw exc_t(ex, backtrace());
     }
 }
 

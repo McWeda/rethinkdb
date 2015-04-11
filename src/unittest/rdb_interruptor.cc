@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 
 #include "protob/protob.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -73,9 +74,10 @@ void count_evals(test_rdb_env_t *test_env,
     count_callback_t callback(count_out);
     env_instance->get_env()->set_eval_callback(&callback);
 
-    ql::backtrace_registry_t bt_reg;
+    ql::real_backtrace_registry_t bt_reg;
     ql::compile_env_t compile_env((ql::var_visibility_t()), &bt_reg);
-    counted_t<const ql::term_t> compiled_term = ql::compile_term(&compile_env, term, EMPTY_BACKTRACE_ID);
+    counted_t<const ql::term_t> compiled_term =
+        ql::compile_term(&compile_env, term, ql::EMPTY_BACKTRACE_ID);
 
     ql::scope_env_t scope_env(env_instance->get_env(), ql::var_scope_t());
     UNUSED scoped_ptr_t<ql::val_t> result = compiled_term->eval(&scope_env);
@@ -92,9 +94,10 @@ void interrupt_test(test_rdb_env_t *test_env,
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
     env_instance->get_env()->set_eval_callback(&callback);
 
-    ql::backtrace_registry_t bt_reg;
+    ql::real_backtrace_registry_t bt_reg;
     ql::compile_env_t compile_env((ql::var_visibility_t()), &bt_reg);
-    counted_t<const ql::term_t> compiled_term = ql::compile_term(&compile_env, term, EMPTY_BACKTRACE_ID);
+    counted_t<const ql::term_t> compiled_term =
+        ql::compile_term(&compile_env, term, ql::EMPTY_BACKTRACE_ID);
 
     try {
         ql::scope_env_t scope_env(env_instance->get_env(), ql::var_scope_t());
@@ -285,7 +288,8 @@ public:
 
         // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
         res->set_token(query->token());
-        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message);
+        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message,
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
     std::map<int64_t, cond_t *> interruptors;

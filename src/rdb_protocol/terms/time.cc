@@ -267,7 +267,7 @@ counted_t<term_t> make_time_term(
 }
 
 counted_t<term_t> make_portion_term(
-        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,
         pseudo::time_component_t component) {
     return make_counted<portion_term_t>(env, term, bt, component);
 }

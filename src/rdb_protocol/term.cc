@@ -22,7 +22,7 @@ counted_t<const term_t> compile_term(
     // HACK: per @srh, use unlimited array size at compile time
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     switch (t->type()) {
-    case Term::DATUM:              return make_datum_term(env, t, bt, limits,
+    case Term::DATUM:              return make_datum_term(t, bt, limits,
                                                           reql_version_t::LATEST);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t, bt);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t, bt);
@@ -225,14 +225,16 @@ void run(query_id_t &&query_id,
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(), EMPTY_BACKTRACE);
+        fill_error(res, Response::CLIENT_ERROR, e.what(),
+                   backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
 
     try {
         validate_optargs(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(), EMPTY_BACKTRACE);
+        fill_error(res, Response::CLIENT_ERROR, e.what(),
+                   backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
 #ifdef INSTRUMENT
@@ -266,8 +268,8 @@ void run(query_id_t &&query_id,
         } break;
         default: unreachable();
         }
-    } catch (const query_cache_exc_t &e) {
-        fill_error(res, e.type(), e.what(), e.backtrace_datum());
+    } catch (const query_cache_exc_t &ex) {
+        fill_error(res, ex.type, ex.message, ex.bt_datum);
     }
 }
 
@@ -276,8 +278,8 @@ runtime_term_t::runtime_term_t(backtrace_id_t bt)
 
 runtime_term_t::~runtime_term_t() { }
 
-term_t::term_t(protob_t<const Term> _src)
-    : runtime_term_t(get_backtrace(_src)), src(_src) { }
+term_t::term_t(protob_t<const Term> _src, backtrace_id_t bt)
+    : runtime_term_t(bt), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where

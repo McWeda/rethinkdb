@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -311,11 +312,6 @@ private:
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<get_field_term_t>(env, term);
-}
-
 class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const protob_t<const Term> &term,
@@ -367,6 +363,11 @@ private:
 
     obj_or_seq_op_impl_t impl;
 };
+
+counted_t<term_t> make_get_field_term(
+    compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<get_field_term_t>(env, term, bt);
+}
 
 counted_t<term_t> make_bracket_term(
         compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {

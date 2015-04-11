@@ -19,23 +19,23 @@ public:
     }
 
     ~term_walker_t() {
-        r_sanity_check(frames.empty())
+        r_sanity_check(frames.empty());
     }
 
     // Build up an intrusive list stack for reporting backtraces
     // without compiling the terms or using much dynamic memory.
     class frame_t : public intrusive_list_node_t<frame_t> {
     public:
-        frame_t(intrusive_list<frame_t> *frames,
+        frame_t(intrusive_list_t<frame_t> *_parent_list,
                 Term::TermType _term_type,
                 datum_t _val) :
-            parent_list(frames),
+            parent_list(_parent_list),
             term_type(_term_type),
             val(_val),
             writes_legal(true)
         {
             // TODO, RSI: The is_stream_funcall_frame crap didn't make any sense
-            frame_t *prev_frame = frames->tail();
+            frame_t *prev_frame = parent_list->tail();
             if (prev_frame != nullptr) {
                 writes_legal = !term_forbids_writes(term_type) &&
                                prev_frame->writes_legal;
@@ -44,16 +44,19 @@ public:
         }
 
         ~frame_t() {
-            parent_list->remove_node(this);
+            parent_list->remove(this);
         }
 
-        intrusive_list<frame_t> *parent_list;
+        intrusive_list_t<frame_t> *parent_list;
         const Term::TermType term_type;
         const datum_t val;
         bool writes_legal;
     };
 
     void walk(Term *t) {
+        frame_t *this_frame = frames.tail();
+        guarantee(this_frame != nullptr);
+
         if (t->type() == Term::NOW && t->args_size() == 0) {
             // Construct curtime the first time we access it
             if (!curtime.has()) {
@@ -63,41 +66,37 @@ public:
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
-            frame_t *last_frame = frames.prev(frames->tail());
+            frame_t *last_frame = frames.prev(this_frame);
             if (last_frame != nullptr && last_frame->term_type != Term::ORDER_BY) {
-                throw term_walker_exc_t(build_backtrace(),
-                    strprintf("%s may only be used as an argument to ORDER_BY.",
-                              (t->type() == Term::ASC ? "ASC" : "DESC")));
+                throw term_walker_exc_t(strprintf("%s may only be used as an argument "
+                    "to ORDER_BY.", (t->type() == Term::ASC ? "ASC" : "DESC")),
+                    backtrace());
             }
         }
 
         if (term_is_write_or_meta(t->type()) && !this_frame->writes_legal) {
-            throw term_walker_exc_t(build_backtrace(),
-                strprintf("Cannot nest writes or meta ops in stream operations.  "
-                          "Use FOR_EACH instead."));
+            throw term_walker_exc_t(strprintf("Cannot nest writes or meta ops in "
+                "stream operations.  Use FOR_EACH instead."), backtrace());
         }
 
         for (int i = 0; i < t->args_size(); ++i) {
             Term *child = t->mutable_args(i);
-            frame_t frame(&frames, child->type(), datum_t(i));
+            frame_t frame(&frames, child->type(), datum_t(static_cast<double>(i)));
             walk(child);
         }
         for (int i = 0; i < t->optargs_size(); ++i) {
             Term_AssocPair *ap = t->mutable_optargs(i);
             Term *child = ap->mutable_val();
-            frame_t frame(&frames, child->type(), datum_t(ap->key()));
+            frame_t frame(&frames, child->type(), datum_t(ap->key().c_str()));
             walk(child);
         }
     }
 private:
-    datum_t build_backtrace() {
+    datum_t backtrace() {
         datum_array_builder_t builder(configured_limits_t::unlimited);
-        for (const frame_t *f = frames.tail(); !f.is_head(); f = frames.prev(f)) {
-            r_sanity_check(f.parent < frames.size());
-            if (dummy_frames > 0) {
-                --dummy_frames;
-            } else {
-                builder.add(f.val);
+        for (frame_t *f = frames.tail(); f != nullptr; f = frames.prev(f)) {
+            if (f->val.get_type() != datum_t::type_t::R_NULL) {
+                builder.add(f->val);
             }
         }
         return std::move(builder).to_datum();

@@ -3,10 +3,11 @@
 
 #include <string>
 
-#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
 
@@ -17,7 +18,6 @@ public:
     rewrite_term_t(compile_env_t *env, const protob_t<const Term> term,
                    backtrace_id_t bt, argspec_t argspec,
                    r::reql_t (*rewrite)(protob_t<const Term> in,
-                                        backtrace_id_t bt,
                                         protob_t<const Term> optargs_in))
         : term_t(term, bt), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
@@ -25,12 +25,12 @@ public:
                base_exc_t::GENERIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
-        out->Swap(&rewrite(in, this, in).get());
+        out->Swap(&rewrite(in, in).get());
 
-        // TODO: RSI: figure out var_visibility_t
+        // TODO: RSI: figure out var_visibility_t, this is probably incorrect
         dummy_backtrace_registry_t dummy_reg(bt);
-        compile_env_t sub_env((var_visibility_t()), &dummy_reg);
-        real = compile_term(sub_env, out, bt);
+        compile_env_t sub_env(env->visibility, &dummy_reg);
+        real = compile_term(&sub_env, out, bt);
     }
 
 private:
@@ -57,7 +57,7 @@ public:
                       backtrace_id_t bt)
         : rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -89,7 +89,7 @@ public:
                       backtrace_id_t bt) :
         rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -129,7 +129,7 @@ public:
         rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 private:
 
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &left_attr = in->args(1);
@@ -162,7 +162,7 @@ public:
         : rewrite_term_t(env, term, bt, argspec_t(1), rewrite) { }
 private:
 
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         auto x = pb::dummy_var_t::IGNORED;
 
@@ -180,7 +180,7 @@ public:
                   backtrace_id_t bt)
         : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         auto old_row = pb::dummy_var_t::UPDATE_OLDROW;
         auto new_row = pb::dummy_var_t::UPDATE_NEWROW;
@@ -212,7 +212,7 @@ public:
                 backtrace_id_t bt)
         : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         r::reql_t term =
             r::expr(in->args(0)).slice(in->args(1), -1,
@@ -230,7 +230,7 @@ public:
                       backtrace_id_t bt)
         : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
         auto row = pb::dummy_var_t::DIFFERENCE_ROW;
 
@@ -252,7 +252,7 @@ public:
                        backtrace_id_t bt)
         : rewrite_term_t(env, term, bt, argspec_t(1, -1), rewrite) { }
 private:
-    static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t,
+    static r::reql_t rewrite(protob_t<const Term> in,
                              protob_t<const Term> optargs_in) {
 
         // TODO: RSI: preserve backtraces

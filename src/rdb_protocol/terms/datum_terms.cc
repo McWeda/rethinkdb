@@ -3,16 +3,16 @@
 
 #include <string>
 
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(compile_env_t *env, const protob_t<const Term> t,
-                 backtrace_id_t bt, const configured_limits_t &limits,
-                 reql_version_t reql_version)
-        : term_t(env, t, bt), datum(to_datum(&t->datum(), limits, reql_version)) { }
+    datum_term_t(const protob_t<const Term> t, backtrace_id_t bt,
+                 const configured_limits_t &limits, reql_version_t reql_version)
+        : term_t(t, bt), datum(to_datum(&t->datum(), limits, reql_version)) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
@@ -62,15 +62,16 @@ class make_obj_term_t : public term_t {
 public:
     make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term,
                     backtrace_id_t bt)
-        : term_t(env, term, bt) {
+        : term_t(term, bt) {
         // An F.Y.I. for driver developers.
         rcheck(term->args_size() == 0,
                base_exc_t::GENERIC,
                "MAKE_OBJ term must not have any args.");
 
         for (int i = 0; i < term->optargs_size(); ++i) {
-            backtrace_id_t child_bt = env->bt_reg->new_frame(backtrace(), pair->key());
             const Term_AssocPair *pair = &term->optargs(i);
+            backtrace_id_t child_bt =
+                env->bt_reg->new_frame(backtrace(), datum_t(pair->key().c_str()));
             counted_t<const term_t> t = compile_term(env, term.make_child(&pair->val()), child_bt);
             auto res = optargs.insert(std::make_pair(pair->key(), std::move(t)));
             rcheck(res.second,
@@ -133,7 +134,7 @@ private:
 };
 
 counted_t<term_t> make_datum_term(
-        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt,
+        const protob_t<const Term> &term, backtrace_id_t bt,
         const configured_limits_t &limits, reql_version_t reql_version) {
     return make_counted<datum_term_t>(term, bt, limits, reql_version);
 }

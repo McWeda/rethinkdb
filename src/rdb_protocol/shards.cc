@@ -531,7 +531,7 @@ protected:
     skip_terminal_t(const skip_wire_func_t &wf, T &&t)
         : terminal_t<T>(std::move(t)),
           f(wf.compile_wire_func_or_null()),
-          bt(wf.bt.get_bt()) { }
+          bt(wf.bt) { }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,
                             T *out) {
@@ -540,7 +540,7 @@ protected:
             return true;
         } catch (const datum_exc_t &e) {
             if (e.get_type() != base_exc_t::NON_EXISTENCE) {
-                throw exc_t(e, bt.get());
+                throw exc_t(e, bt);
             }
         } catch (const exc_t &e2) {
             if (e2.get_type() != base_exc_t::NON_EXISTENCE) {
@@ -698,7 +698,7 @@ private:
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
             return true;
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     virtual datum_t unpack(datum_t *el) {
@@ -801,7 +801,7 @@ private:
                         }
                     }
                 } catch (const datum_exc_t &e) {
-                    throw exc_t(e, (*f)->backtrace().get(), 1);
+                    throw exc_t(e, (*f)->backtrace(), 1);
                 }
             }
             if (append_index) {
@@ -830,7 +830,7 @@ private:
                 r_sanity_check(instance.size() == 0);
             }
 
-            rcheck_src(bt.get(),
+            rcheck_src(bt,
                        groups->size() <= env->limits().array_size_limit(),
                        base_exc_t::GENERIC,
                        strprintf("Too many groups (> %zu).",
@@ -894,7 +894,7 @@ private:
                 *it = f->call(env, *it)->as_datum();
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     counted_t<const func_t> f;
@@ -951,7 +951,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->erase(loc, lst->end());
     }
@@ -980,7 +980,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->swap(new_lst);
     }

@@ -1,5 +1,6 @@
 #include "rdb_protocol/func.hpp"
 
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -140,7 +141,8 @@ void js_func_t::visit(func_visitor_t *visitor) const {
     visitor->on_js_func(this);
 }
 
-func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t, backtrace_id_t bt)
+func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t,
+                         backtrace_id_t bt)
     : term_t(t, bt) {
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
