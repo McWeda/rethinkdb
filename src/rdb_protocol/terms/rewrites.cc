@@ -14,11 +14,12 @@ namespace ql {
 
 class rewrite_term_t : public term_t {
 public:
-    rewrite_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
+    rewrite_term_t(compile_env_t *env, const protob_t<const Term> term,
+                   backtrace_id_t bt, argspec_t argspec,
                    r::reql_t (*rewrite)(protob_t<const Term> in,
                                         backtrace_id_t bt,
                                         protob_t<const Term> optargs_in))
-        : term_t(term), in(term), out(make_counted_term()) {
+        : term_t(term, bt), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
                base_exc_t::GENERIC,
@@ -26,9 +27,10 @@ public:
                          argspec.print().c_str(), args_size));
         out->Swap(&rewrite(in, this, in).get());
 
-        // The replacer will ensure all sub-terms use this backtrace
-        backtrace_registry_t::replacer_t replacer(env->bt_reg, bt);
-        real = compile_term(env, out, bt);
+        // TODO: RSI: figure out var_visibility_t
+        dummy_backtrace_registry_t dummy_reg(bt);
+        compile_env_t sub_env((var_visibility_t()), &dummy_reg);
+        real = compile_term(sub_env, out, bt);
     }
 
 private:
@@ -51,8 +53,9 @@ private:
 
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
+    inner_join_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
@@ -82,8 +85,9 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
+    outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt) :
+        rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
@@ -120,8 +124,9 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
+    eq_join_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt) :
+        rewrite_term_t(env, term, bt, argspec_t(3), rewrite) { }
 private:
 
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
@@ -152,8 +157,9 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
+    delete_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(1), rewrite) { }
 private:
 
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
@@ -170,8 +176,9 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
+    update_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
@@ -201,8 +208,9 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
+    skip_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
@@ -218,8 +226,9 @@ private:
 
 class difference_term_t : public rewrite_term_t {
 public:
-    difference_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
+    difference_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t bt,
                              protob_t<const Term> optargs_in) {
@@ -239,12 +248,14 @@ private:
 
 class with_fields_term_t : public rewrite_term_t {
 public:
-    with_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
+    with_fields_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                       backtrace_id_t bt)
+        : rewrite_term_t(env, term, bt, argspec_t(1, -1), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in, backtrace_id_t,
                              protob_t<const Term> optargs_in) {
 
+        // TODO: RSI: preserve backtraces
         r::reql_t has_fields = r::expr(in->args(0)).has_fields();
         has_fields.copy_args_from_term(*in, 1);
         has_fields.copy_optargs_from_term(*optargs_in);
@@ -257,36 +268,36 @@ private:
 };
 
 counted_t<term_t> make_skip_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<skip_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<skip_term_t>(env, term, bt);
 }
 counted_t<term_t> make_inner_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<inner_join_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<inner_join_term_t>(env, term, bt);
 }
 counted_t<term_t> make_outer_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<outer_join_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<outer_join_term_t>(env, term, bt);
 }
 counted_t<term_t> make_eq_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<eq_join_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<eq_join_term_t>(env, term, bt);
 }
 counted_t<term_t> make_update_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<update_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<update_term_t>(env, term, bt);
 }
 counted_t<term_t> make_delete_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<delete_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<delete_term_t>(env, term, bt);
 }
 counted_t<term_t> make_difference_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<difference_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<difference_term_t>(env, term, bt);
 }
 counted_t<term_t> make_with_fields_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<with_fields_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<with_fields_term_t>(env, term, bt);
 }
 
 } // namespace ql

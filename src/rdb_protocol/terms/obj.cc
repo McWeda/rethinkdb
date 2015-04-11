@@ -8,8 +8,9 @@ namespace ql {
 
 class keys_term_t : public op_term_t {
 public:
-    keys_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    keys_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -45,8 +46,9 @@ private:
 
 class object_term_t : public op_term_t {
 public:
-    object_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0, -1)) { }
+    object_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() % 2 == 0,
@@ -71,12 +73,14 @@ private:
     virtual const char *name() const { return "object"; }
 };
 
-counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<keys_term_t>(env, term);
+counted_t<term_t> make_keys_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<keys_term_t>(env, term, bt);
 }
 
-counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term){
-    return make_counted<object_term_t>(env, term);
+counted_t<term_t> make_object_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<object_term_t>(env, term, bt);
 }
 
 

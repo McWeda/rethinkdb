@@ -100,7 +100,7 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
     }
 
     counted_t<const term_t> root_term;
-    backtrace_registry_t bt_reg;
+    real_backtrace_registry_t bt_reg;
     std::map<std::string, wire_func_t> global_optargs;
     try {
         // Parsing the global optargs also pre-processes the query
@@ -110,11 +110,14 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
         compile_env_t compile_env((var_visibility_t()), &bt_reg);
         root_term = compile_term(&compile_env, original_query.make_child(t), EMPTY_BACKTRACE_ID);
     } catch (const term_walker_exc_t &e) {
-        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), e.backtrace());
+        throw query_cache_exc_t(Response::COMPILE_ERROR,
+                                e.what(), e.backtrace());
     } catch (const exc_t &e) {
-        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), e.backtrace(bt_reg));
+        throw query_cache_exc_t(Response::COMPILE_ERROR,
+                                e.what(), bt_reg.datum_backtrace(e));
     } catch (const datum_exc_t &e) {
-        throw query_cache_exc_t(Response::COMPILE_ERROR, e.what(), EMPTY_BACKTRACE);
+        throw query_cache_exc_t(Response::COMPILE_ERROR,
+                                e.what(), EMPTY_BACKTRACE);
     }
 
     scoped_ptr_t<entry_t> entry(new entry_t(original_query,
@@ -265,7 +268,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
     } catch (...) {
         query_cache->terminate_internal(entry);
         throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                                e.what(), e.backtrace(entry->bt_reg));
+                                e.what(), entry->bt_reg.datum_backtrace(e));
     }
 }
 
@@ -355,11 +358,13 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
 }
 
 query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,
+                                backtrace_registry_t &&_bt_reg,
                                 std::map<std::string, wire_func_t> &&_global_optargs,
                                 counted_t<const term_t> _root_term) :
         state(state_t::START),
         job_id(generate_uuid()),
         original_query(_original_query),
+        bt_reg(std::move(_bt_reg)),
         global_optargs(std::move(_global_optargs)),
         profile(profile_bool_optarg(original_query)),
         start_time(current_microtime()),

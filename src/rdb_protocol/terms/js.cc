@@ -13,8 +13,9 @@ namespace ql {
 
 class javascript_term_t : public op_term_t {
 public:
-    javascript_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t({ "timeout" })) { }
+    javascript_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1), optargspec_t({ "timeout" })) { }
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
@@ -57,8 +58,9 @@ private:
     }
 };
 
-counted_t<term_t> make_javascript_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<javascript_term_t>(env, term);
+counted_t<term_t> make_javascript_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<javascript_term_t>(env, term, bt);
 }
 
 }  // namespace ql

@@ -121,7 +121,7 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(zip_wire_func_t);
 
 class group_wire_func_t {
 public:
-    group_wire_func_t() : bt(make_counted_backtrace()) { }
+    group_wire_func_t() : bt(EMPTY_BACKTRACE_ID) { }
     group_wire_func_t(std::vector<counted_t<const func_t> > &&_funcs,
                       bool _append_index, bool _multi);
     std::vector<counted_t<const func_t> > compile_funcs() const;

@@ -9,25 +9,6 @@
 
 namespace ql {
 
-class term_walker_exc_t : public std::exception {
-public:
-    term_walker_exc_t() {
-
-    }
-    virtual ~term_walker_exc_t();
-
-    const char *what() throw () {
-        return message.c_str();
-    }
-    datum_t backtrace() const {
-        return bt;
-    }
-
-private:
-    std::string message;
-    ql::datum_t bt;
-};
-
 // We use this class to walk a term and do something to every node.
 class term_walker_t {
 public:

@@ -20,6 +20,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
 #include "rdb_protocol/term.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -125,15 +126,17 @@ public:
 
 private:
     struct entry_t {
-        entry_t(protob_t<Query> original_query,
-                std::map<std::string, wire_func_t> &&global_optargs,
-                counted_t<const term_t> root_term);
+        entry_t(protob_t<Query> _original_query,
+                real_backtrace_registry_t &&_bt_reg,
+                std::map<std::string, wire_func_t> &&_global_optargs,
+                counted_t<const term_t> _root_term);
         ~entry_t();
 
         enum class state_t { START, STREAM, DONE, DELETING } state;
 
         const uuid_u job_id;
         const protob_t<Query> original_query;
+        const real_backtrace_registry_t bt_reg;
         const std::map<std::string, wire_func_t> global_optargs;
         const profile_bool_t profile;
         const microtime_t start_time;

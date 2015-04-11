@@ -15,8 +15,9 @@ namespace ql {
 
 class and_term_t : public op_term_t {
 public:
-    and_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+    and_term_t(compile_env_t *env, const protob_t<const Term> &term,
+               backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
@@ -32,8 +33,9 @@ private:
 
 class or_term_t : public op_term_t {
 public:
-    or_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+    or_term_t(compile_env_t *env, const protob_t<const Term> &term,
+              backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
@@ -49,7 +51,9 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(3)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool b = args->arg(env, 0)->as_bool();
@@ -61,8 +65,9 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1),
+    funcall_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -128,17 +133,21 @@ private:
 };
 
 
-counted_t<term_t> make_and_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<and_term_t>(env, term);
+counted_t<term_t> make_and_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<and_term_t>(env, term, bt);
 }
-counted_t<term_t> make_or_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<or_term_t>(env, term);
+counted_t<term_t> make_or_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<or_term_t>(env, term, bt);
 }
-counted_t<term_t> make_branch_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<branch_term_t>(env, term);
+counted_t<term_t> make_branch_term(
+            compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<branch_term_t>(env, term, bt);
 }
-counted_t<term_t> make_funcall_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<funcall_term_t>(env, term);
+counted_t<term_t> make_funcall_term(
+            compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<funcall_term_t>(env, term, bt);
 }
 
 }  // namespace ql

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ERROR_HPP_
 #define RDB_PROTOCOL_ERROR_HPP_
 
@@ -15,6 +15,9 @@
 
 namespace ql {
 
+typedef uint32_t backtrace_id_t;
+const backtrace_id_t EMPTY_BACKTRACE_ID = 0;
+
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
 class base_exc_t : public std::exception {
 public:
@@ -29,10 +32,6 @@ public:
     virtual ~base_exc_t() throw () { }
     type_t get_type() const { return type_; }
 
-    // Returns an empty backtrace, overridden by subclasses with a real backtrace
-    virtual ql::datum_t backtrace(const backtrace_registry_t &reg) const {
-        return reg.get_backtrace(EMPTY_BACKTRACE_ID, 0);   
-    }
 protected:
     type_t type_;
 };
@@ -43,7 +42,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 // directly.
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
-                  std::string msg, backtrace_id_t bt_src) NORETURN;
+                  std::string msg, backtrace_id_t bt) NORETURN;
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
@@ -71,25 +70,22 @@ public:
     virtual void runtime_fail(base_exc_t::type_t type,
                               const char *test, const char *file, int line,
                               std::string msg) const {
-        ql::runtime_fail(type, test, file, line, msg, bt_src.get());
+        ql::runtime_fail(type, test, file, line, msg, bt);
     }
 
-    // Propagate the associated backtrace through the rewrite term.
-    void propagate(Term *t) const;
-
-    backtrace_id_t backtrace() const { return bt_src; }
+    backtrace_id_t backtrace() const { return bt; }
 
 protected:
-    explicit bt_rcheckable_t(backtrace_id_t _bt_src)
-        : bt_src(_bt_src) { }
+    explicit bt_rcheckable_t(backtrace_id_t _bt)
+        : bt(_bt) { }
 
     backtrace_id_t update_bt(backtrace_id_t new_bt) {
-        std::swap(new_bt, bt_src);
+        std::swap(new_bt, bt);
         return new_bt;
     }
 
 private:
-    backtrace_id_t bt_src;
+    backtrace_id_t bt;
 };
 
 // Use these macros to return errors to users.
@@ -182,57 +178,23 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
     } while (0)
 #endif // NDEBUG
 
-typedef uint32_t backtrace_id_t;
-const backtrace_id_t EMPTY_BACKTRACE_ID = 0;
-
-// Converts backtrace ids into a backtrace we can return to the user.
-class backtrace_registry_t {
-public:
-    template <class T>
-    backtrace_id_t new_frame(backtrace_id_t parent_bt, const T &val) {
-        frames.emplace_back(parent_bt, datum_t(val));
-    }
-
-    ql::datum_t get_backtrace(backtrace_id_t bt, size_t dummy_frames);
-
-private:
-    struct frame_t {
-        frame_t(backtrace_id_t _parent, datum_t _val) :
-            parent(_parent), val(_val) { }
-
-        bool is_head() const {
-            return val.get_type() == datum_t::type_t::R_NULLL;
-        }
-
-        backtrace_id_t parent;
-        ql::datum_t val;
-    };
-
-    // TODO: use a hashmap or something?
-    std::vector<frame_t> frames;
-
-    DISABLE_COPYING(backtrace_registry_t);
-};
-
 // A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
-    exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
+    exc_t() : base_exc_t(base_exc_t::GENERIC), msg("UNINITIALIZED") { }
     exc_t(base_exc_t::type_t type, const std::string &_msg, backtrace_id_t _bt)
         : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames(0) { }
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
-        : base_exc_t(e.get_type()), msg(e.what()), bt(_bt), dummy_frames(_dummy_frames) {
+        : base_exc_t(e.get_type()), msg(e.what()), bt(_bt), dummy_frames(_dummy_frames) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return msg.c_str(); }
 
-    ql::datum_t backtrace(const backtrace_registry_t &reg) const {
-        return reg.get_backtrace(bt, dummy_frames);   
-    }
-
     RDB_DECLARE_ME_SERIALIZABLE(exc_t);
 private:
+    friend class backtrace_registry_t;
+
     std::string msg;
     backtrace_id_t bt;
     size_t dummy_frames;
@@ -244,7 +206,7 @@ private:
 // turned into a normal `exc_t`.
 class datum_exc_t : public base_exc_t {
 public:
-    datum_exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg("UNINITIALIZED") { }
+    datum_exc_t() : base_exc_t(base_exc_t::GENERIC), msg("UNINITIALIZED") { }
     explicit datum_exc_t(base_exc_t::type_t type, const std::string &_msg)
         : base_exc_t(type), msg(_msg) { }
     virtual ~datum_exc_t() throw () { }
@@ -255,14 +217,6 @@ public:
 private:
     std::string msg;
 };
-
-void fill_backtrace(Backtrace *bt_out,
-                    ql::datum_t backtrace);
-
-void fill_error(Response *res_out,
-                Response::ResponseType type,
-                const char *message,
-                ql::datum_t backtrace);
 
 } // namespace ql
 

@@ -9,19 +9,10 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-<<<<<<< Updated upstream
-    datum_term_t(compile_env_t *env, protob_t<const Term> t, backtrace_id_t bt,
-                 const configured_limits_t &limits, reql_version_t reql_version)
-        : term_t(env, t, bt), datum(to_datum(&t->datum(), limits, reql_version)) { }
-||||||| merged common ancestors
-    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits,
+    datum_term_t(compile_env_t *env, const protob_t<const Term> t,
+                 backtrace_id_t bt, const configured_limits_t &limits,
                  reql_version_t reql_version)
-        : term_t(t), datum(to_datum(&t->datum(), limits, reql_version)) { }
-=======
-    datum_term_t(compile_env_t *env, protob_t<const Term> t,
-                 const configured_limits_t &limits, reql_version_t reql_version)
-        : term_t(env, t), datum(to_datum(&t->datum(), limits, reql_version)) { }
->>>>>>> Stashed changes
+        : term_t(env, t, bt), datum(to_datum(&t->datum(), limits, reql_version)) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
@@ -34,8 +25,8 @@ private:
 
 class constant_term_t : public op_term_t {
 public:
-    constant_term_t(compile_env_t *env, protob_t<const Term> t, backtrace_id_t bt,
-                    double constant, const char *name)
+    constant_term_t(compile_env_t *env, const protob_t<const Term> t,
+                    backtrace_id_t bt, double constant, const char *name)
         : op_term_t(env, t, bt, argspec_t(0)), _constant(constant), _name(name) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
@@ -48,7 +39,8 @@ private:
 
 class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt)
+    make_array_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
         : op_term_t(env, term, bt, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -68,7 +60,8 @@ private:
 
 class make_obj_term_t : public term_t {
 public:
-    make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt)
+    make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                    backtrace_id_t bt)
         : term_t(env, term, bt) {
         // An F.Y.I. for driver developers.
         rcheck(term->args_size() == 0,
@@ -121,7 +114,8 @@ private:
 
 class binary_term_t : public op_term_t {
 public:
-    binary_term_t(compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt)
+    binary_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
         : op_term_t(env, term, bt, argspec_t(1, 1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {

@@ -11,8 +11,9 @@ namespace ql {
 
 class iso8601_term_t : public op_term_t {
 public:
-    iso8601_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t({"default_timezone"})) { }
+    iso8601_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1), optargspec_t({"default_timezone"})) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -27,8 +28,9 @@ private:
 
 class to_iso8601_term_t : public op_term_t {
 public:
-    to_iso8601_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    to_iso8601_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
@@ -40,8 +42,9 @@ private:
 
 class epoch_time_term_t : public op_term_t {
 public:
-    epoch_time_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    epoch_time_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                      backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -52,8 +55,9 @@ private:
 
 class to_epoch_time_term_t : public op_term_t {
 public:
-    to_epoch_time_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    to_epoch_time_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                         backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
@@ -65,8 +69,9 @@ private:
 
 class now_term_t : public op_term_t {
 public:
-    now_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0)) { }
+    now_term_t(compile_env_t *env, const protob_t<const Term> &term,
+               backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         // This should never get called because we rewrite `now` calls to a
@@ -80,8 +85,9 @@ private:
 
 class in_timezone_term_t : public op_term_t {
 public:
-    in_timezone_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+    in_timezone_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                       backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(2)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(pseudo::time_in_tz(args->arg(env, 0)->as_ptype(pseudo::time_string),
@@ -92,8 +98,9 @@ private:
 
 class during_term_t : public bounded_op_term_t {
 public:
-    during_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : bounded_op_term_t(env, term, argspec_t(3)) { }
+    during_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : bounded_op_term_t(env, term, bt, argspec_t(3)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t t = args->arg(env, 0)->as_ptype(pseudo::time_string);
@@ -109,8 +116,9 @@ private:
 
 class date_term_t : public op_term_t {
 public:
-    date_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    date_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(pseudo::time_date(args->arg(env, 0)->as_ptype(pseudo::time_string), this));
@@ -120,8 +128,9 @@ private:
 
 class time_of_day_term_t : public op_term_t {
 public:
-    time_of_day_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    time_of_day_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                       backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(pseudo::time_of_day(args->arg(env, 0)->as_ptype(pseudo::time_string)));
@@ -131,8 +140,9 @@ private:
 
 class timezone_term_t : public op_term_t {
 public:
-    timezone_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    timezone_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                    backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(pseudo::time_tz(args->arg(env, 0)->as_ptype(pseudo::time_string)));
@@ -142,9 +152,9 @@ private:
 
 class portion_term_t : public op_term_t {
 public:
-    portion_term_t(compile_env_t *env, protob_t<const Term> term,
-                   pseudo::time_component_t _component)
-        : op_term_t(env, term, argspec_t(1)), component(_component) { }
+    portion_term_t(compile_env_t *env, const protob_t<const Term> term,
+                   backtrace_id_t bt, pseudo::time_component_t _component)
+        : op_term_t(env, term, bt, argspec_t(1)), component(_component) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         double d = pseudo::time_portion(args->arg(env, 0)->as_ptype(pseudo::time_string), component);
@@ -168,8 +178,9 @@ private:
 
 class time_term_t : public op_term_t {
 public:
-    time_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(4, 7)) { }
+    time_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(4, 7)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() == 4 || args->num_args() == 7, base_exc_t::GENERIC,
@@ -200,43 +211,65 @@ private:
     virtual const char *name() const { return "time"; }
 };
 
-counted_t<term_t> make_iso8601_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<iso8601_term_t>(env, term);
-}
-counted_t<term_t> make_to_iso8601_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<to_iso8601_term_t>(env, term);
-}
-counted_t<term_t> make_epoch_time_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<epoch_time_term_t>(env, term);
-}
-counted_t<term_t> make_to_epoch_time_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<to_epoch_time_term_t>(env, term);
-}
-counted_t<term_t> make_now_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<now_term_t>(env, term);
-}
-counted_t<term_t> make_in_timezone_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<in_timezone_term_t>(env, term);
-}
-counted_t<term_t> make_during_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<during_term_t>(env, term);
+counted_t<term_t> make_iso8601_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<iso8601_term_t>(env, term, bt);
 }
 
-counted_t<term_t> make_date_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<date_term_t>(env, term);
+counted_t<term_t> make_to_iso8601_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<to_iso8601_term_t>(env, term, bt);
 }
-counted_t<term_t> make_time_of_day_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<time_of_day_term_t>(env, term);
+
+counted_t<term_t> make_epoch_time_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<epoch_time_term_t>(env, term, bt);
 }
-counted_t<term_t> make_timezone_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<timezone_term_t>(env, term);
+
+counted_t<term_t> make_to_epoch_time_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<to_epoch_time_term_t>(env, term, bt);
 }
-counted_t<term_t> make_time_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<time_term_t>(env, term);
+
+counted_t<term_t> make_now_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<now_term_t>(env, term, bt);
 }
-counted_t<term_t> make_portion_term(compile_env_t *env, const protob_t<const Term> &term,
-                                    pseudo::time_component_t component) {
-    return make_counted<portion_term_t>(env, term, component);
+
+counted_t<term_t> make_in_timezone_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<in_timezone_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_during_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<during_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_date_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<date_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_time_of_day_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<time_of_day_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_timezone_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<timezone_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_time_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<time_term_t>(env, term, bt);
+}
+
+counted_t<term_t> make_portion_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt
+        pseudo::time_component_t component) {
+    return make_counted<portion_term_t>(env, term, bt, component);
 }
 
 } // namespace ql

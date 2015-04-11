@@ -30,8 +30,10 @@ bool datum_ge(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
 
 class predicate_term_t : public op_term_t {
 public:
-    predicate_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
+    predicate_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                     backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(2, -1)),
+          namestr(0), invert(false), pred(0) {
         int predtype = term->type();
         switch (predtype) {
         case Term_TermType_EQ: {
@@ -83,7 +85,9 @@ private:
 
 class not_term_t : public op_term_t {
 public:
-    not_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    not_term_t(compile_env_t *env, const protob_t<const Term> &term,
+               backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val_bool(!args->arg(env, 0)->as_bool());
@@ -93,11 +97,13 @@ private:
 
 } // Anonymous namespace
 
-counted_t<term_t> make_predicate_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<predicate_term_t>(env, term);
+counted_t<term_t> make_predicate_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<predicate_term_t>(env, term, bt);
 }
-counted_t<term_t> make_not_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<not_term_t>(env, term);
+counted_t<term_t> make_not_term(
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<not_term_t>(env, term, bt);
 }
 
 } // namespace ql

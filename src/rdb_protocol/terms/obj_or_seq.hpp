@@ -46,10 +46,11 @@ private:
 class obj_or_seq_op_term_t : public grouped_seq_op_term_t {
 public:
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                         poly_type_t _poly_type, argspec_t argspec);
+                         backtrace_id_t bt, poly_type_t _poly_type,
+                         argspec_t argspec);
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
-                         poly_type_t _poly_type, argspec_t argspec,
-                         std::set<std::string> &&ptypes);
+                         backtrace_id_t bt, poly_type_t _poly_type,
+                         argspec_t argspec, std::set<std::string> &&ptypes);
 
 private:
     virtual scoped_ptr_t<val_t> obj_eval(scope_env_t *env,

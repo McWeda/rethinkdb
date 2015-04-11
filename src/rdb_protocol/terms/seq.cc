@@ -15,8 +15,9 @@ namespace ql {
 template<class T>
 class map_acc_term_t : public grouped_seq_op_term_t {
 protected:
-    map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(1, 2), optargspec_t({"index"})) { }
+    map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(1, 2), optargspec_t({"index"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
                                        eval_flags_t) const {
@@ -119,8 +120,9 @@ private:
 
 class count_term_t : public grouped_seq_op_term_t {
 public:
-    count_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
+    count_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                 backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(1, 2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args,
                                           eval_flags_t) const {
@@ -159,8 +161,9 @@ private:
 
 class map_term_t : public grouped_seq_op_term_t {
 public:
-    map_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(2, -1)) { }
+    map_term_t(compile_env_t *env, const protob_t<const Term> &term,
+               backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(2, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
@@ -198,8 +201,9 @@ private:
 
 class concatmap_term_t : public grouped_seq_op_term_t {
 public:
-    concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
+    concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                     backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
@@ -213,8 +217,10 @@ private:
 
 class group_term_t : public grouped_seq_op_term_t {
 public:
-    group_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
+    group_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                 backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(1, -1),
+                                optargspec_t({"index", "multi"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<const func_t> > funcs;
@@ -264,8 +270,9 @@ private:
 
 class filter_term_t : public grouped_seq_op_term_t {
 public:
-    filter_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
+    filter_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(2), optargspec_t({"default"})),
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
@@ -298,8 +305,10 @@ private:
 
 class reduce_term_t : public grouped_seq_op_term_t {
 public:
-    reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
+    reduce_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : grouped_seq_op_term_t(env, term, bt, argspec_t(2),
+                                optargspec_t({ "base" })) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -375,8 +384,9 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
 
 class changes_term_t : public op_term_t {
 public:
-    changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1),
+    changes_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1),
                     optargspec_t({"squash", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -439,8 +449,9 @@ private:
 
 class minval_term_t final : public op_term_t {
 public:
-    minval_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0)) { }
+    minval_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         return new_val(datum_t::minval());
@@ -450,8 +461,9 @@ private:
 
 class maxval_term_t final : public op_term_t {
 public:
-    maxval_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0)) { }
+    maxval_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                  backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
         return new_val(datum_t::maxval());
@@ -467,10 +479,9 @@ enum class between_null_t { UNBOUNDED, ERROR };
 
 class between_term_t : public bounded_op_term_t {
 public:
-    between_term_t(compile_env_t *env,
-                   const protob_t<const Term> &term,
-                   between_null_t _null_behavior)
-        : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})),
+    between_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                   backtrace_id_t bt, between_null_t _null_behavior)
+        : bounded_op_term_t(env, term, bt, argspec_t(3), optargspec_t({"index"})),
           null_behavior(_null_behavior) { }
 private:
     datum_t check_bound(scoped_ptr_t<val_t> bound_val,
@@ -520,8 +531,9 @@ private:
 
 class union_term_t : public op_term_t {
 public:
-    union_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0, -1)) { }
+    union_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                 backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
@@ -537,8 +549,9 @@ private:
 
 class zip_term_t : public op_term_t {
 public:
-    zip_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+    zip_term_t(compile_env_t *env, const protob_t<const Term> &term,
+               backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
@@ -550,8 +563,9 @@ private:
 
 class range_term_t : public op_term_t {
 public:
-    range_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0, 2)) { }
+    range_term_t(compile_env_t *env, const protob_t<const Term> &term,
+                 backtrace_id_t bt)
+        : op_term_t(env, term, bt, argspec_t(0, 2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool is_infinite = false;
@@ -574,77 +588,93 @@ private:
 };
 
 counted_t<term_t> make_minval_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<minval_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<minval_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_maxval_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<maxval_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<maxval_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_between_deprecated_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<between_term_t>(env, term, between_null_t::UNBOUNDED);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<between_term_t>(env, term, bt, between_null_t::UNBOUNDED);
 }
+
 counted_t<term_t> make_between_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<between_term_t>(env, term, between_null_t::ERROR);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<between_term_t>(env, term, bt, between_null_t::ERROR);
 }
+
 counted_t<term_t> make_changes_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<changes_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<changes_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_reduce_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<reduce_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<reduce_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_map_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<map_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<map_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_filter_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<filter_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<filter_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_concatmap_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<concatmap_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<concatmap_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_group_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<group_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<group_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_count_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<count_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<count_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_avg_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<avg_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<avg_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_sum_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<sum_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<sum_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_min_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<min_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<min_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_max_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<max_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<max_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_union_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<union_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<union_term_t>(env, term, bt);
 }
+
 counted_t<term_t> make_zip_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<zip_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<zip_term_t>(env, term, bt);
 }
 
 counted_t<term_t> make_range_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<range_term_t>(env, term);
+        compile_env_t *env, const protob_t<const Term> &term, backtrace_id_t bt) {
+    return make_counted<range_term_t>(env, term, bt);
 }
 
 } // namespace ql
