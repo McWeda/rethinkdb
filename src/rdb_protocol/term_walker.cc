@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term_walker.hpp"
 
+#include <algorithm>
+
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
@@ -93,15 +95,16 @@ public:
     }
 private:
     datum_t backtrace() {
-        datum_array_builder_t builder(configured_limits_t::unlimited);
+        std::vector<datum_t> res;
+        res.reserve(frames.size());
         for (frame_t *f = frames.tail(); f != nullptr; f = frames.prev(f)) {
             if (f->val.get_type() != datum_t::type_t::R_NULL) {
-                builder.add(f->val);
+                res.push_back(f->val);
             }
         }
-        return std::move(builder).to_datum();
+        std::reverse(res.begin(), res.end());
+        return datum_t(std::move(res), configured_limits_t::unlimited);
     }
-
 
     // Returns true if `t` is a write or a meta op.
     static bool term_is_write_or_meta(Term::TermType type) {

@@ -184,16 +184,17 @@ op_term_t::op_term_t(compile_env_t *env, const protob_t<const Term> term,
         const Term_AssocPair *ap = &term->optargs(i);
         backtrace_id_t child_bt =
             env->bt_reg->new_frame(bt, datum_t(ap->key().c_str()));
-        rcheck(optargspec.contains(ap->key()),
-               base_exc_t::GENERIC,
-               strprintf("Unrecognized optional argument `%s`.",
-                         ap->key().c_str()));
+        rcheck_src(child_bt, optargspec.contains(ap->key()),
+                   base_exc_t::GENERIC,
+                   strprintf("Unrecognized optional argument `%s`.",
+                             ap->key().c_str()));
         counted_t<const term_t> t =
             compile_term(env, term.make_child(&ap->val()), child_bt);
         auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
-        rcheck(res.second,
-               base_exc_t::GENERIC,
-               strprintf("Duplicate optional argument: %s", ap->key().c_str()));
+        rcheck_src(child_bt, res.second,
+                   base_exc_t::GENERIC,
+                   strprintf("Duplicate optional argument: %s",
+                             ap->key().c_str()));
     }
 }
 op_term_t::~op_term_t() { }

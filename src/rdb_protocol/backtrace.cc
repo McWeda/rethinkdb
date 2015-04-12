@@ -1,5 +1,7 @@
 #include "rdb_protocol/backtrace.hpp"
 
+#include <algorithm>
+
 namespace ql {
 
 const datum_t backtrace_registry_t::EMPTY_BACKTRACE = datum_t::empty_array();
@@ -29,17 +31,18 @@ backtrace_id_t real_backtrace_registry_t::new_frame(backtrace_id_t parent_bt,
 datum_t real_backtrace_registry_t::datum_backtrace(const exc_t &ex) const {
     size_t dummy_frames = ex.dummy_frames();
     r_sanity_check(ex.backtrace() < frames.size());
-    datum_array_builder_t builder(configured_limits_t::unlimited);
+    std::vector<datum_t> res;
     for (const frame_t *f = &frames[ex.backtrace()];
          !f->is_head(); f = &frames[f->parent]) {
         r_sanity_check(f->parent < frames.size());
         if (dummy_frames > 0) {
             --dummy_frames;
         } else {
-            builder.add(f->val);
+            res.push_back(f->val);
         }
     }
-    return std::move(builder).to_datum();
+    std::reverse(res.begin(), res.end());
+    return datum_t(std::move(res), configured_limits_t::unlimited);
 }
 
 void fill_backtrace(Backtrace *bt_out,
