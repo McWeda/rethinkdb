@@ -15,7 +15,7 @@ public:
     term_walker_exc_t(const std::string &_message,
                       const datum_t &_bt) :
         message(_message), bt(_bt) { }
-    virtual ~term_walker_exc_t() { };
+    virtual ~term_walker_exc_t() throw () { };
 
     const char *what() const throw () {
         return message.c_str();

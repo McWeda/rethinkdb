@@ -76,7 +76,7 @@ public:
             }
         }
 
-        if (term_is_write_or_meta(t->type()) && !this_frame->writes_legal) {
+        if (term_is_write_or_meta(t->type()) && !writes_are_still_legal(this_frame)) {
             throw term_walker_exc_t(strprintf("Cannot nest writes or meta ops in "
                 "stream operations.  Use FOR_EACH instead."), backtrace());
         }
@@ -104,6 +104,18 @@ private:
         }
         std::reverse(res.begin(), res.end());
         return datum_t(std::move(res), configured_limits_t::unlimited);
+    }
+
+    static const datum_t stream_funcall_frame;
+
+    bool writes_are_still_legal(frame_t *f) {
+        frame_t *parent = frames.prev(f);
+        if (parent != nullptr &&
+            term_forbids_writes(parent->term_type) &&
+            parent->val != stream_funcall_frame) {
+            return false;
+        }
+        return true;
     }
 
     // Returns true if `t` is a write or a meta op.
@@ -478,6 +490,7 @@ private:
     datum_t curtime;
     intrusive_list_t<frame_t> frames;
 };
+const datum_t term_walker_t::stream_funcall_frame(0.0);
 
 void preprocess_term(Term *root) {
     term_walker_t walker(root);
