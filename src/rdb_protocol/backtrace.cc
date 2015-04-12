@@ -61,7 +61,7 @@ void fill_backtrace(Backtrace *bt_out,
 
 void fill_error(Response *res,
                 Response::ResponseType type,
-                const char *message,
+                const std::string &message,
                 datum_t backtrace) {
     guarantee(type == Response::CLIENT_ERROR ||
               type == Response::COMPILE_ERROR ||

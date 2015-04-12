@@ -11,6 +11,26 @@
 
 namespace ql {
 
+class backtrace_replacer_t {
+public:
+    backtrace_replacer_t(backtrace_id_t bt,
+                         compile_env_t *_env) :
+            env(_env),
+            original_bt_reg(env->bt_reg),
+            dummy_reg(bt) {
+        env->bt_reg = &dummy_reg;
+    }
+
+    ~backtrace_replacer_t() {
+        env->bt_reg = original_bt_reg;
+    }
+
+private:
+    compile_env_t *env;
+    backtrace_registry_t *original_bt_reg;
+    dummy_backtrace_registry_t dummy_reg;
+};
+
 // This file implements terms that are rewritten into other terms.
 
 class rewrite_term_t : public term_t {
@@ -27,10 +47,8 @@ public:
                          argspec.print().c_str(), args_size));
         out->Swap(&rewrite(in, in).get());
 
-        // TODO: RSI: figure out var_visibility_t, this is probably incorrect
-        dummy_backtrace_registry_t dummy_reg(bt);
-        compile_env_t sub_env(env->visibility, &dummy_reg);
-        real = compile_term(&sub_env, out, bt);
+        backtrace_replacer_t bt_replacer(bt, env);
+        real = compile_term(env, out, bt);
     }
 
 private:
