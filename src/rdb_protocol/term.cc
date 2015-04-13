@@ -233,7 +233,7 @@ void run(query_id_t &&query_id,
     try {
         validate_optargs(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(),
+        fill_error(res, Response::COMPILE_ERROR, e.what(),
                    backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
