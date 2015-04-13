@@ -183,8 +183,9 @@ class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), msg("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &_msg, backtrace_id_t _bt)
-        : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames_(0) { }
+    exc_t(base_exc_t::type_t type, const std::string &_msg,
+          backtrace_id_t _bt, size_t _dummy_frames = 0)
+        : base_exc_t(type), msg(_msg), bt(_bt), dummy_frames_(_dummy_frames) { }
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
         : base_exc_t(e.get_type()), msg(e.what()),
           bt(_bt), dummy_frames_(_dummy_frames) { }
