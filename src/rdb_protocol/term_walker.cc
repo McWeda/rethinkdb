@@ -16,8 +16,8 @@ class term_walker_t {
 public:
     // This constructor checks that the term-tree is well-formed.
     explicit term_walker_t(Term *root) {
-        frame_t frame(&frames, root->type(), datum_t::null());
-        walk(root);
+        frame_t toplevel_frame(&frames, root->type(), datum_t::null());
+        walk(root, nullptr, &toplevel_frame);
     }
 
     ~term_walker_t() {
@@ -31,17 +31,15 @@ public:
         frame_t(intrusive_list_t<frame_t> *_parent_list,
                 Term::TermType _term_type,
                 datum_t _val) :
-            parent_list(_parent_list),
-            term_type(_term_type),
-            val(_val),
-            writes_legal(true)
+            parent_list(_parent_list), term_type(_term_type),
+            val(_val), writes_legal(true)
         {
-            // TODO, RSI: The is_stream_funcall_frame crap didn't make any sense
+            // TODO: do we need is_stream_funcall stuff?
             frame_t *prev_frame = parent_list->tail();
             if (prev_frame != nullptr) {
-                writes_legal = !term_forbids_writes(term_type) &&
-                               prev_frame->writes_legal;
+                writes_legal = prev_frame->writes_legal;
             }
+            writes_legal &= !term_forbids_writes(term_type);
             parent_list->push_back(this);
         }
 
@@ -55,8 +53,7 @@ public:
         bool writes_legal;
     };
 
-    void walk(Term *t) {
-        frame_t *this_frame = frames.tail();
+    void walk(Term *t, const frame_t *prev_frame, const frame_t *this_frame) {
         guarantee(this_frame != nullptr);
 
         if (t->type() == Term::NOW && t->args_size() == 0) {
@@ -68,29 +65,31 @@ public:
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
-            frame_t *last_frame = frames.prev(this_frame);
-            if (last_frame != nullptr && last_frame->term_type != Term::ORDER_BY) {
+            if (prev_frame != nullptr && prev_frame->term_type != Term::ORDER_BY) {
                 throw term_walker_exc_t(strprintf("%s may only be used as an argument "
                     "to ORDER_BY.", (t->type() == Term::ASC ? "ASC" : "DESC")),
                     backtrace());
             }
         }
 
-        if (term_is_write_or_meta(t->type()) && !writes_are_still_legal(this_frame)) {
-            throw term_walker_exc_t(strprintf("Cannot nest writes or meta ops in "
-                "stream operations.  Use FOR_EACH instead."), backtrace());
+        if (term_is_write_or_meta(t->type())) {
+            if (prev_frame != nullptr && !prev_frame->writes_legal) {
+                throw term_walker_exc_t(strprintf("Cannot nest writes or meta ops in "
+                    "stream operations.  Use FOR_EACH instead."), backtrace());
+            }
         }
 
         for (int i = 0; i < t->args_size(); ++i) {
             Term *child = t->mutable_args(i);
-            frame_t frame(&frames, child->type(), datum_t(static_cast<double>(i)));
-            walk(child);
+            frame_t child_frame(&frames, child->type(), datum_t(static_cast<double>(i)));
+            walk(child, this_frame, &child_frame);
         }
+
         for (int i = 0; i < t->optargs_size(); ++i) {
             Term_AssocPair *ap = t->mutable_optargs(i);
             Term *child = ap->mutable_val();
-            frame_t frame(&frames, child->type(), datum_t(ap->key().c_str()));
-            walk(child);
+            frame_t child_frame(&frames, child->type(), datum_t(ap->key().c_str()));
+            walk(child, this_frame, &child_frame);
         }
     }
 private:
@@ -104,18 +103,6 @@ private:
         }
         std::reverse(res.begin(), res.end());
         return datum_t(std::move(res), configured_limits_t::unlimited);
-    }
-
-    static const datum_t stream_funcall_frame;
-
-    bool writes_are_still_legal(frame_t *f) {
-        frame_t *parent = frames.prev(f);
-        if (parent != nullptr &&
-            term_forbids_writes(parent->term_type) &&
-            parent->val != stream_funcall_frame) {
-            return false;
-        }
-        return true;
     }
 
     // Returns true if `t` is a write or a meta op.
@@ -490,7 +477,6 @@ private:
     datum_t curtime;
     intrusive_list_t<frame_t> frames;
 };
-const datum_t term_walker_t::stream_funcall_frame(0.0);
 
 void preprocess_term(Term *root) {
     term_walker_t walker(root);
