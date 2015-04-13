@@ -789,7 +789,7 @@ done_traversing_t rget_cb_t::handle_pair(
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
+        io.response->result = ql::exc_t(e, ql::EMPTY_BACKTRACE_ID);
         return done_traversing_t::YES;
 #endif // NDEBUG
     }

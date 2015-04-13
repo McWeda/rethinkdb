@@ -4,6 +4,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "perfmon/perfmon.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/profile.hpp"
@@ -51,7 +52,8 @@ void rdb_query_server_t::run_query(ql::query_id_t &&query_id,
 #ifdef NDEBUG // In debug mode we crash, in release we send an error.
     } catch (const std::exception &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       strprintf("Unexpected exception: %s\n", e.what()));
+                       strprintf("Unexpected exception: %s\n", e.what()),
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
 #endif // NDEBUG
     }
 
