@@ -16,7 +16,7 @@ class term_walker_t {
 public:
     // This constructor checks that the term-tree is well-formed.
     explicit term_walker_t(Term *root) {
-        frame_t toplevel_frame(&frames, root->type(), datum_t::null());
+        frame_t toplevel_frame(&frames, root->type(), true, datum_t::null());
         walk(root, nullptr, &toplevel_frame);
     }
 
@@ -30,11 +30,11 @@ public:
     public:
         frame_t(intrusive_list_t<frame_t> *_parent_list,
                 Term::TermType _term_type,
+                bool _is_stream_funcall,
                 datum_t _val) :
             parent_list(_parent_list), term_type(_term_type),
-            val(_val), writes_legal(true)
+            val(_val), writes_legal(true), is_stream_funcall(_is_stream_funcall)
         {
-            // TODO: do we need is_stream_funcall stuff?
             frame_t *prev_frame = parent_list->tail();
             if (prev_frame != nullptr) {
                 writes_legal = prev_frame->writes_legal;
@@ -51,6 +51,7 @@ public:
         const Term::TermType term_type;
         const datum_t val;
         bool writes_legal;
+        bool is_stream_funcall;
     };
 
     void walk(Term *t, const frame_t *prev_frame, const frame_t *this_frame) {
@@ -73,7 +74,9 @@ public:
         }
 
         if (term_is_write_or_meta(t->type())) {
-            if (prev_frame != nullptr && !prev_frame->writes_legal) {
+            if (prev_frame != nullptr &&
+                !prev_frame->writes_legal &&
+                !this_frame->is_stream_funcall) {
                 throw term_walker_exc_t(strprintf("Cannot nest writes or meta ops in "
                     "stream operations.  Use FOR_EACH instead."), backtrace());
             }
@@ -81,14 +84,16 @@ public:
 
         for (int i = 0; i < t->args_size(); ++i) {
             Term *child = t->mutable_args(i);
-            frame_t child_frame(&frames, child->type(), datum_t(static_cast<double>(i)));
+            frame_t child_frame(&frames, child->type(), i == 0,
+                                datum_t(static_cast<double>(i)));
             walk(child, this_frame, &child_frame);
         }
 
         for (int i = 0; i < t->optargs_size(); ++i) {
             Term_AssocPair *ap = t->mutable_optargs(i);
             Term *child = ap->mutable_val();
-            frame_t child_frame(&frames, child->type(), datum_t(ap->key().c_str()));
+            frame_t child_frame(&frames, child->type(), false,
+                                datum_t(ap->key().c_str()));
             walk(child, this_frame, &child_frame);
         }
     }
